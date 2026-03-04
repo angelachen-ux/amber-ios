@@ -1,4 +1,4 @@
-import { pgTable, serial, text, timestamp, jsonb, varchar, integer, pgEnum } from 'drizzle-orm/pg-core';
+import { pgTable, serial, text, timestamp, jsonb, varchar, integer, pgEnum, boolean } from 'drizzle-orm/pg-core';
 
 export const relationshipTypeEnum = pgEnum('relationship_type', ['parent', 'sibling', 'partner', 'child', 'other']);
 export const insightPriorityEnum = pgEnum('insight_priority', ['high', 'medium', 'low']);
@@ -9,6 +9,7 @@ export const runStatusEnum = pgEnum('run_status', ['queued', 'running', 'succeed
 export const users = pgTable('users', {
   id: serial('id').primaryKey(),
   privyUserId: varchar('privy_user_id', { length: 255 }).notNull().unique(),
+  auth0UserId: varchar('auth0_user_id', { length: 255 }).unique(),
   didPrimary: varchar('did_primary', { length: 255 }),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
 });
@@ -106,4 +107,116 @@ export const anchors = pgTable('anchors', {
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
 });
 
+// --- New enums ---
+export const privacyTierEnum = pgEnum('privacy_tier', ['local_only', 'selective_cloud', 'full_social']);
+export const signalTypeEnum = pgEnum('signal_type', ['birthday', 'shared_event', 'questionnaire_match', 'health_sync', 'location_proximity', 'interest_overlap']);
+export const signalStatusEnum = pgEnum('signal_status', ['pending', 'sent', 'seen', 'acted_on', 'dismissed', 'expired']);
+export const notificationStatusEnum = pgEnum('notification_status', ['queued', 'sent', 'delivered', 'opened', 'failed']);
+export const circleTypeEnum = pgEnum('circle_type', ['auto', 'manual']);
+export const personalityTypeEnum = pgEnum('personality_type', ['horoscope', 'myers_briggs', 'enneagram', 'big_five']);
+export const devicePlatformEnum = pgEnum('device_platform', ['ios', 'android']);
+export const onboardingStepEnum = pgEnum('onboarding_step', ['welcome', 'basics', 'birthday', 'location', 'education', 'permissions', 'privacy_tier', 'complete']);
 
+// User profiles (onboarding immutable objects)
+export const userProfiles = pgTable('user_profiles', {
+  id: serial('id').primaryKey(),
+  userId: integer('user_id').references(() => users.id).notNull().unique(),
+  displayName: varchar('display_name', { length: 100 }),
+  birthday: timestamp('birthday', { withTimezone: true }).notNull(),
+  birthdayTime: varchar('birthday_time', { length: 10 }),
+  birthLocation: varchar('birth_location', { length: 255 }),
+  almaMater: varchar('alma_mater', { length: 255 }),
+  hometown: varchar('hometown', { length: 255 }),
+  currentCity: varchar('current_city', { length: 255 }),
+  bio: text('bio'),
+  avatarUrl: varchar('avatar_url', { length: 500 }),
+  privacyTier: privacyTierEnum('privacy_tier').default('selective_cloud'),
+  contentHash: varchar('content_hash', { length: 66 }),
+  onboardingCompletedAt: timestamp('onboarding_completed_at', { withTimezone: true }),
+  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
+});
+
+// Onboarding progress (tracks wizard state)
+export const onboardingProgress = pgTable('onboarding_progress', {
+  id: serial('id').primaryKey(),
+  userId: integer('user_id').references(() => users.id).unique(),
+  currentStep: onboardingStepEnum('current_step').default('welcome'),
+  stepsCompleted: jsonb('steps_completed').default({}),
+  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
+});
+
+// Personality profiles (derived personality data)
+export const personalityProfiles = pgTable('personality_profiles', {
+  id: serial('id').primaryKey(),
+  userId: integer('user_id').references(() => users.id).notNull(),
+  profileType: personalityTypeEnum('profile_type').notNull(),
+  result: jsonb('result').notNull(),
+  derivedFrom: varchar('derived_from', { length: 50 }),
+  confidence: integer('confidence'),
+  contentHash: varchar('content_hash', { length: 66 }),
+  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
+});
+
+// Signals (detected connection signals)
+export const signals = pgTable('signals', {
+  id: serial('id').primaryKey(),
+  signalType: signalTypeEnum('signal_type').notNull(),
+  sourceUserId: integer('source_user_id').references(() => users.id).notNull(),
+  targetUserId: integer('target_user_id').references(() => users.id),
+  data: jsonb('data').notNull(),
+  priority: insightPriorityEnum('priority').default('medium'),
+  status: signalStatusEnum('status').default('pending'),
+  expiresAt: timestamp('expires_at', { withTimezone: true }),
+  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
+});
+
+// Notifications (push notification log)
+export const notifications = pgTable('notifications', {
+  id: serial('id').primaryKey(),
+  userId: integer('user_id').references(() => users.id).notNull(),
+  signalId: integer('signal_id').references(() => signals.id),
+  title: varchar('title', { length: 255 }).notNull(),
+  body: text('body').notNull(),
+  deepLink: varchar('deep_link', { length: 500 }),
+  status: notificationStatusEnum('status').default('queued'),
+  sentAt: timestamp('sent_at', { withTimezone: true }),
+  openedAt: timestamp('opened_at', { withTimezone: true }),
+  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
+});
+
+// Circles (friend groups)
+export const circles = pgTable('circles', {
+  id: serial('id').primaryKey(),
+  ownerId: integer('owner_id').references(() => users.id).notNull(),
+  name: varchar('name', { length: 100 }).notNull(),
+  type: circleTypeEnum('type').default('manual'),
+  source: varchar('source', { length: 50 }),
+  metadata: jsonb('metadata'),
+  contentHash: varchar('content_hash', { length: 66 }),
+  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
+});
+
+// Circle members (junction table)
+export const circleMembers = pgTable('circle_members', {
+  id: serial('id').primaryKey(),
+  circleId: integer('circle_id').references(() => circles.id).notNull(),
+  personId: integer('person_id').references(() => persons.id).notNull(),
+  addedAt: timestamp('added_at', { withTimezone: true }).defaultNow(),
+});
+
+// Device tokens (for push notifications)
+export const deviceTokens = pgTable('device_tokens', {
+  id: serial('id').primaryKey(),
+  userId: integer('user_id').references(() => users.id).notNull(),
+  token: varchar('token', { length: 500 }).notNull(),
+  platform: devicePlatformEnum('platform').notNull(),
+  isActive: boolean('is_active').default(true),
+  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
+});
