@@ -9,14 +9,37 @@ import SwiftUI
 
 @main
 struct AmberApp: App {
+    @StateObject var authViewModel = AuthViewModel()
+
     var body: some Scene {
         WindowGroup {
-            ContentView()
+            Group {
+                if authViewModel.isLoading {
+                    // Splash / session check
+                    ZStack {
+                        Color.amberBackground.ignoresSafeArea()
+                        ProgressView()
+                            .tint(.amberBlue)
+                    }
+                } else if !authViewModel.isAuthenticated {
+                    LoginView()
+                        .environmentObject(authViewModel)
+                } else {
+                    // TODO: Add onboarding check here
+                    // if !onboarded { OnboardingContainerView() } else { ContentView() }
+                    ContentView()
+                        .environmentObject(authViewModel)
+                }
+            }
+            .onAppear {
+                authViewModel.checkSession()
+            }
         }
     }
 }
 
 struct ContentView: View {
+    @EnvironmentObject var authViewModel: AuthViewModel
     @State private var selectedTab = 1 // Start on Network (center)
     @State private var searchText = ""
     @State private var networkInputText = ""
