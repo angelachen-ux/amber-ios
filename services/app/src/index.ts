@@ -11,6 +11,7 @@ import { registerAiRoutes } from './routes/ai.js';
 import { registerIdentityRoutes } from './routes/identity.js';
 import { registerAnchorRoutes } from './routes/anchor.js';
 import { registerInsightRoutes } from './routes/insights.js';
+import { registerOnboardingRoutes } from './routes/onboarding.js';
 import { handleError } from './util/errors.js';
 import './pipeline/nodes/registry.js';
 
@@ -42,6 +43,7 @@ await app.register(registerAiRoutes);
 await app.register(registerIdentityRoutes);
 await app.register(registerAnchorRoutes);
 await app.register(registerInsightRoutes);
+await app.register(registerOnboardingRoutes);
 
 // Cloud Run compatible HTTP server
 app.listen({ port: config.server.port, host: config.server.host }, (err) => {
