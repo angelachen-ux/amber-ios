@@ -24,6 +24,12 @@ export const config = {
     appSecret: requireEnv('PRIVY_APP_SECRET'),
   },
 
+  // Auth0
+  auth0: {
+    domain: optionalEnv('AUTH0_DOMAIN', 'dev-4prs757badfajpi5.us.auth0.com')!,
+    clientId: optionalEnv('AUTH0_CLIENT_ID', 'ytP3na2gIO9Wpsc4cEt1klmSbPF4ZAIe')!,
+  },
+
   // Database
   database: {
     url: optionalEnv('DATABASE_URL'),
@@ -52,4 +58,3 @@ if (!config.isDevelopment) {
   requireEnv('PRIVY_APP_ID');
   requireEnv('PRIVY_APP_SECRET');
 }
-
