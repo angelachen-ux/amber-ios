@@ -6,45 +6,60 @@
 //
 
 import SwiftUI
+import SwiftData
 
 @main
 struct AmberApp: App {
     var body: some Scene {
         WindowGroup {
-            ContentView()
+            RootView()
+        }
+        .modelContainer(for: [UserProfile.self, Contact.self, Signal.self, Circle.self])
+    }
+}
+
+// MARK: - Root View (handles onboarding gate)
+
+struct RootView: View {
+    @Environment(\.modelContext) private var context
+    @Query private var profiles: [UserProfile]
+
+    private var isOnboarded: Bool {
+        profiles.first?.onboardingComplete == true
+    }
+
+    var body: some View {
+        if isOnboarded {
+            MainTabView()
+        } else {
+            OnboardingView {
+                // onComplete — SwiftData @Query will update automatically
+            }
         }
     }
 }
 
-struct ContentView: View {
-    @State private var selectedTab = 1 // Start on Network (center)
-    @State private var searchText = ""
-    @State private var networkInputText = ""
-    @FocusState private var isNetworkInputFocused: Bool
+// MARK: - Main Tab View (post-onboarding)
+
+struct MainTabView: View {
+    @State private var selectedTab = 1
 
     var body: some View {
         ZStack {
-            // Content views
             Group {
                 if selectedTab == 0 {
-                    ConnectionsView(searchText: $searchText)
+                    ConnectionsView(searchText: .constant(""))
                 } else if selectedTab == 1 {
-                    DiscoverView()
+                    SuggestionFeedView()
                 } else {
                     AmberIDView()
                 }
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
 
-            // Network input bar - only shows when on Network tab
             VStack {
                 Spacer()
-                if selectedTab == 1 {
-                    NetworkInputBar(inputText: $networkInputText, isInputFocused: $isNetworkInputFocused)
-                        .padding(.bottom, 12)
-                        .transition(.move(edge: .bottom).combined(with: .opacity))
-                }
-                CustomTabBar(selectedTab: $selectedTab, searchText: $searchText)
+                CustomTabBar(selectedTab: $selectedTab, searchText: .constant(""))
             }
             .ignoresSafeArea(.keyboard)
         }

@@ -11,17 +11,21 @@ import { registerAiRoutes } from './routes/ai.js';
 import { registerIdentityRoutes } from './routes/identity.js';
 import { registerAnchorRoutes } from './routes/anchor.js';
 import { registerInsightRoutes } from './routes/insights.js';
+import { registerOnboardingRoutes } from './routes/onboarding.js';
+import { registerPrivacyRoutes } from './routes/privacy.js';
+import { registerSignalRoutes } from './routes/signals.js';
+import { registerCircleRoutes } from './routes/circles.js';
 import { handleError } from './util/errors.js';
 import './pipeline/nodes/registry.js';
 
-const app = Fastify({ 
+const app = Fastify({
   logger: true,
   requestIdLogLabel: 'reqId',
   disableRequestLogging: false,
 });
 
 // CORS
-await app.register(cors, { 
+await app.register(cors, {
   origin: true,
   credentials: true,
 });
@@ -33,7 +37,9 @@ app.setErrorHandler((error, request, reply) => {
   reply.code(statusCode).send({ error: code, message, ...context });
 });
 
-// Routes
+// ─── Routes ───────────────────────────────────────────────────────────────────
+
+// Legacy / infrastructure
 await app.register(registerHealthRoutes);
 await app.register(registerAuthRoutes);
 await app.register(registerContactRoutes);
@@ -43,7 +49,14 @@ await app.register(registerIdentityRoutes);
 await app.register(registerAnchorRoutes);
 await app.register(registerInsightRoutes);
 
-// Cloud Run compatible HTTP server
+// Sprint 1 MVP
+await app.register(registerOnboardingRoutes); // ONBOARD-01/02
+await app.register(registerPrivacyRoutes);    // PRIVACY-01
+await app.register(registerSignalRoutes);     // SIGNAL-01/02/03/04/05
+await app.register(registerCircleRoutes);     // SOCIAL-01
+
+// ─── Server ───────────────────────────────────────────────────────────────────
+
 app.listen({ port: config.server.port, host: config.server.host }, (err) => {
   if (err) {
     app.log.error(err);
@@ -51,6 +64,7 @@ app.listen({ port: config.server.port, host: config.server.host }, (err) => {
   }
   app.log.info(`🚀 Amber API listening on ${config.server.host}:${config.server.port}`);
   app.log.info(`✅ Privy configured: ${config.privy.appId.substring(0, 8)}...`);
+  app.log.info(`📊 Sentry DSN: ${config.sentry.dsn ? 'configured' : 'not set (optional)'}`);
 });
 
 // Export for Cloud Functions (if needed)
