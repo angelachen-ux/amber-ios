@@ -81,7 +81,7 @@ export async function registerSignalRoutes(app: FastifyInstance) {
     '/signals/:id',
     { preHandler: authenticate },
     async (req: AuthenticatedRequest, reply) => {
-      const id = Number(req.params.id);
+      const { id: idStr } = req.params as { id: string }; const id = Number(idStr);
       const [signal] = await db
         .select()
         .from(schema.signals)
@@ -107,7 +107,7 @@ export async function registerSignalRoutes(app: FastifyInstance) {
     '/signals/:id/react',
     { preHandler: authenticate },
     async (req: AuthenticatedRequest, reply) => {
-      const id = Number(req.params.id);
+      const { id: idStr } = req.params as { id: string }; const id = Number(idStr);
       const { action } = ReactSchema.parse(req.body);
 
       const [signal] = await db

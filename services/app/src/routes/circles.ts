@@ -76,7 +76,7 @@ export async function registerCircleRoutes(app: FastifyInstance) {
     '/circles/:id',
     { preHandler: authenticate },
     async (req: AuthenticatedRequest, reply) => {
-      const id = Number(req.params.id);
+      const { id: idStr } = req.params as { id: string }; const id = Number(idStr);
 
       // Verify user is a member
       const [membership] = await db
@@ -116,7 +116,7 @@ export async function registerCircleRoutes(app: FastifyInstance) {
     '/circles/join/:token',
     { preHandler: authenticate },
     async (req: AuthenticatedRequest, reply) => {
-      const { token } = req.params;
+      const { token } = req.params as { token: string };
 
       const [circle] = await db
         .select()
@@ -144,7 +144,7 @@ export async function registerCircleRoutes(app: FastifyInstance) {
     '/circles/:id',
     { preHandler: authenticate },
     async (req: AuthenticatedRequest, reply) => {
-      const id = Number(req.params.id);
+      const { id: idStr } = req.params as { id: string }; const id = Number(idStr);
 
       const [circle] = await db
         .select()
@@ -170,7 +170,7 @@ export async function registerCircleRoutes(app: FastifyInstance) {
     '/circles/:id/members',
     { preHandler: authenticate },
     async (req: AuthenticatedRequest, reply) => {
-      const id = Number(req.params.id);
+      const { id: idStr } = req.params as { id: string }; const id = Number(idStr);
 
       const [membership] = await db
         .select()

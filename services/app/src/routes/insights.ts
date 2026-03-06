@@ -58,7 +58,7 @@ export async function registerInsightRoutes(app: FastifyInstance) {
     '/insights/:id',
     { preHandler: authenticate },
     async (req: AuthenticatedRequest, reply) => {
-      const id = Number(req.params.id);
+      const { id: idStr } = req.params as { id: string }; const id = Number(idStr);
       const [insight] = await db
         .select()
         .from(schema.insights)
