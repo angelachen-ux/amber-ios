@@ -4,7 +4,7 @@ import './nlp-extract.js';
 
 // contacts.import
 registerNode('contacts.import', async (_input, cfg) => {
-  const listId = String((cfg as any).listId || 'default');
+  const _listId = String((cfg as any).listId || 'default');
   // placeholder: return an array of contacts for the list
   return [
     { id: 'c1', name: 'Ada Lovelace', wallets: [] },

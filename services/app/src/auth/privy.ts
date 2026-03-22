@@ -18,6 +18,10 @@ export async function verifyPrivyToken(token: string): Promise<PrivyUser> {
     throw new Error('Privy client not configured');
   }
   const claims = await privy.verifyAuthToken(token);
-  return claims;
+  return {
+    id: claims.userId,
+    createdAt: 0,
+    linkedAccounts: [],
+  };
 }
 

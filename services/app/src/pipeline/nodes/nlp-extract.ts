@@ -1,7 +1,7 @@
 import { registerNode } from '../engine.js';
 
 // NLP extraction node: takes natural language input and extracts person/relationship entities
-registerNode('nlp.extract', async (input, cfg) => {
+registerNode('nlp.extract', async (input, _cfg) => {
   const text = typeof input === 'string' ? input : JSON.stringify(input);
   
   // Improved pattern matching for name extraction

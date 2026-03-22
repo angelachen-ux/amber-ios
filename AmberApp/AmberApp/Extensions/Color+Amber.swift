@@ -11,7 +11,12 @@ extension Color {
     // MARK: - Backgrounds
     static let amberBackground = Color(hex: "0A0A0A")
     static let amberCard = Color(hex: "1C1C1E")
+    static let amberCardBackground = Color(hex: "1C1C1E")
     static let amberCardElevated = Color(hex: "2C2C2E")
+
+    // MARK: - Text
+    static let amberText = Color.white
+    static let amberSecondaryText = Color(hex: "8E8E93")
 
     // MARK: - Accents
     static let amberBlue = Color(hex: "4A90D9")

@@ -2,7 +2,7 @@ import { FastifyInstance } from 'fastify';
 import { z } from 'zod';
 import { runPipeline } from '../pipeline/engine.js';
 import { db, schema } from '../db/client.js';
-import { eq } from 'drizzle-orm';
+import { eq, and } from 'drizzle-orm';
 import { authenticate, AuthenticatedRequest } from '../auth/middleware.js';
 
 const NodeSchema = z.object({
@@ -23,7 +23,7 @@ export async function registerPipelineRoutes(app: FastifyInstance) {
    * POST /pipelines/run
    * Run a pipeline (for authenticated user)
    */
-  app.post('/pipelines/run', { preHandler: authenticate }, async (req: AuthenticatedRequest, reply) => {
+  app.post('/pipelines/run', { preHandler: authenticate }, async (req: AuthenticatedRequest, _reply) => {
     const body = PipelineSchema.parse(req.body);
     const { input, ...def } = body;
     
@@ -79,7 +79,7 @@ export async function registerPipelineRoutes(app: FastifyInstance) {
     '/pipelines/run/:id',
     { preHandler: authenticate },
     async (req: AuthenticatedRequest, reply) => {
-      const id = Number(req.params.id);
+      const { id: idStr } = req.params as { id: string }; const id = Number(idStr);
       const [run] = await db
         .select()
         .from(schema.pipelineRuns)

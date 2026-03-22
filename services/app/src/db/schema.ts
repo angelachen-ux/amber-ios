@@ -11,6 +11,8 @@ export const users = pgTable('users', {
   privyUserId: varchar('privy_user_id', { length: 255 }).notNull().unique(),
   auth0UserId: varchar('auth0_user_id', { length: 255 }).unique(),
   didPrimary: varchar('did_primary', { length: 255 }),
+  privacyTier: varchar('privacy_tier', { length: 50 }).default('local_only'),
+  apnsDeviceToken: varchar('apns_device_token', { length: 512 }),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
 });
 
@@ -107,7 +109,8 @@ export const anchors = pgTable('anchors', {
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
 });
 
-// --- New enums ---
+// ─── GCP+Onboarding+Auth Enums ──────────────────────────────────────────────
+
 export const privacyTierEnum = pgEnum('privacy_tier', ['local_only', 'selective_cloud', 'full_social']);
 export const signalTypeEnum = pgEnum('signal_type', ['birthday', 'shared_event', 'questionnaire_match', 'health_sync', 'location_proximity', 'interest_overlap']);
 export const signalStatusEnum = pgEnum('signal_status', ['pending', 'sent', 'seen', 'acted_on', 'dismissed', 'expired']);
@@ -116,6 +119,11 @@ export const circleTypeEnum = pgEnum('circle_type', ['auto', 'manual']);
 export const personalityTypeEnum = pgEnum('personality_type', ['horoscope', 'myers_briggs', 'enneagram', 'big_five']);
 export const devicePlatformEnum = pgEnum('device_platform', ['ios', 'android']);
 export const onboardingStepEnum = pgEnum('onboarding_step', ['welcome', 'basics', 'birthday', 'location', 'education', 'permissions', 'privacy_tier', 'complete']);
+
+// Sprint 1 MVP: Circle visibility enum
+export const circleVisibilityEnum = pgEnum('circle_visibility', ['private', 'members', 'public']);
+
+// ─── GCP+Onboarding+Auth Tables ─────────────────────────────────────────────
 
 // User profiles (onboarding immutable objects)
 export const userProfiles = pgTable('user_profiles', {
@@ -161,16 +169,63 @@ export const personalityProfiles = pgTable('personality_profiles', {
   updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
 });
 
+// ─── Sprint 1 MVP Tables (merged from main) ────────────────────────────────
+
+// PRIVACY-01: Field-level permission table — controls which fields sync to cloud
+export const userPermissions = pgTable('user_permissions', {
+  id: serial('id').primaryKey(),
+  userId: integer('user_id').references(() => users.id).notNull(),
+  fieldType: varchar('field_type', { length: 100 }).notNull(),
+  syncEnabled: boolean('sync_enabled').default(false).notNull(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
+});
+
+// PRIVACY-01: Audit log for permission changes
+export const permissionAuditLog = pgTable('permission_audit_log', {
+  id: serial('id').primaryKey(),
+  userId: integer('user_id').references(() => users.id).notNull(),
+  fieldType: varchar('field_type', { length: 100 }).notNull(),
+  oldValue: boolean('old_value'),
+  newValue: boolean('new_value').notNull(),
+  changedAt: timestamp('changed_at', { withTimezone: true }).defaultNow().notNull(),
+});
+
+// DATA-01: iMessage contact graph — synced for selective/full_social users
+export const contacts = pgTable('contacts', {
+  id: serial('id').primaryKey(),
+  userId: integer('user_id').references(() => users.id).notNull(),
+  externalId: varchar('external_id', { length: 255 }),
+  name: text('name').notNull(),
+  phoneNumbers: jsonb('phone_numbers').$type<string[]>().default([]),
+  emails: jsonb('emails').$type<string[]>().default([]),
+  birthday: timestamp('birthday', { withTimezone: true }),
+  messageFrequency: integer('message_frequency').default(0),
+  lastContactedAt: timestamp('last_contacted_at', { withTimezone: true }),
+  relationshipScore: integer('relationship_score').default(0),
+  metadata: jsonb('metadata'),
+  createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
+  updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
+});
+
+// ─── Signals & Social ───────────────────────────────────────────────────────
+
 // Signals (detected connection signals)
 export const signals = pgTable('signals', {
   id: serial('id').primaryKey(),
   signalType: signalTypeEnum('signal_type').notNull(),
   sourceUserId: integer('source_user_id').references(() => users.id).notNull(),
   targetUserId: integer('target_user_id').references(() => users.id),
+  userId: integer('user_id').references(() => users.id),
+  contactId: integer('contact_id').references(() => contacts.id),
+  triggerDate: timestamp('trigger_date', { withTimezone: true }),
   data: jsonb('data').notNull(),
   priority: insightPriorityEnum('priority').default('medium'),
   status: signalStatusEnum('status').default('pending'),
+  payload: jsonb('payload'),
+  dedupeKey: varchar('dedupe_key', { length: 255 }).unique(),
   expiresAt: timestamp('expires_at', { withTimezone: true }),
+  sentAt: timestamp('sent_at', { withTimezone: true }),
+  actedAt: timestamp('acted_at', { withTimezone: true }),
   createdAt: timestamp('created_at', { withTimezone: true }).defaultNow().notNull(),
   updatedAt: timestamp('updated_at', { withTimezone: true }).defaultNow().notNull(),
 });
@@ -194,8 +249,11 @@ export const notifications = pgTable('notifications', {
 export const circles = pgTable('circles', {
   id: serial('id').primaryKey(),
   ownerId: integer('owner_id').references(() => users.id).notNull(),
+  createdByUserId: integer('created_by_user_id').references(() => users.id),
   name: varchar('name', { length: 100 }).notNull(),
   type: circleTypeEnum('type').default('manual'),
+  visibility: circleVisibilityEnum('visibility').default('private'),
+  inviteToken: varchar('invite_token', { length: 64 }).unique(),
   source: varchar('source', { length: 50 }),
   metadata: jsonb('metadata'),
   contentHash: varchar('content_hash', { length: 66 }),
@@ -207,7 +265,9 @@ export const circles = pgTable('circles', {
 export const circleMembers = pgTable('circle_members', {
   id: serial('id').primaryKey(),
   circleId: integer('circle_id').references(() => circles.id).notNull(),
-  personId: integer('person_id').references(() => persons.id).notNull(),
+  userId: integer('user_id').references(() => users.id),
+  personId: integer('person_id').references(() => persons.id),
+  joinedAt: timestamp('joined_at', { withTimezone: true }).defaultNow(),
   addedAt: timestamp('added_at', { withTimezone: true }).defaultNow(),
 });
 
