@@ -8,7 +8,7 @@
 import { FastifyInstance } from 'fastify';
 import { z } from 'zod';
 import { db, schema } from '../db/client.js';
-import { eq, and, inArray, lte, gte, isNull } from 'drizzle-orm';
+import { eq, and, inArray, lte } from 'drizzle-orm';
 import { authenticate, AuthenticatedRequest } from '../auth/middleware.js';
 
 const ReactSchema = z.object({

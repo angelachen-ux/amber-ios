@@ -91,8 +91,8 @@ export async function runPipeline(def: PipelineDef, onLog: (entry: string) => vo
     if (!runner) throw new Error(`No runner for node type ${node.type}`);
     ctx.log(`node:start:${node.id}`);
     const start = Date.now();
-    const timeoutMs = Number((node.config as any)?.timeoutMs || 20000);
-    const attempts = Number((node.config as any)?.retries || 1);
+    const timeoutMs = Number((node.config as Record<string, unknown>)?.timeoutMs || 20000);
+    const attempts = Number((node.config as Record<string, unknown>)?.retries || 1);
     const exec = () => runner(input, node.config || {}, ctx);
     const output = (await runWithRetry(() => withTimeout(exec(), timeoutMs, node.id), attempts, 300, ctx, node.id)) as unknown;
     ctx.log(`node:end:${node.id}:${Date.now() - start}ms`);

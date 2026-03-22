@@ -15,7 +15,7 @@ export async function registerAnchorRoutes(app: FastifyInstance) {
    * POST /anchor/create
    * Create on-chain anchor (for authenticated user)
    */
-  app.post('/anchor/create', { preHandler: authenticate }, async (req: AuthenticatedRequest, _reply) => {
+  app.post('/anchor/create', { preHandler: authenticate }, async (req: AuthenticatedRequest) => {
     const { uri, kind } = AnchorBody.parse(req.body);
     const hash = sha256Hex(uri);
     

@@ -42,8 +42,9 @@ export async function registerAuthRoutes(app: FastifyInstance) {
         privyUserId: privyUser.id,
         linkedAccounts: privyUser.linkedAccounts,
       };
-    } catch (error: any) {
-      reply.code(401).send({ error: 'invalid_token', message: error?.message });
+    } catch (error: unknown) {
+      const message = error instanceof Error ? error.message : 'Invalid token';
+      reply.code(401).send({ error: 'invalid_token', message });
     }
   });
 

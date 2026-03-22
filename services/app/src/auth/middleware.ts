@@ -44,8 +44,9 @@ export async function authenticate(
 
     request.userId = user.id;
     request.privyUserId = privyUser.id;
-  } catch (error: any) {
-    reply.code(401).send({ error: 'unauthorized', message: error?.message || 'Invalid token' });
+  } catch (error: unknown) {
+    const message = error instanceof Error ? error.message : 'Invalid token';
+    reply.code(401).send({ error: 'unauthorized', message });
     return;
   }
 }
@@ -88,9 +89,10 @@ export async function authenticateAuth0(
 
     request.userId = user.id;
     request.auth0UserId = auth0UserId;
-  } catch (error: any) {
+  } catch (error: unknown) {
     console.error('Auth0 verify error:', error);
-    reply.code(401).send({ error: 'unauthorized', message: error?.message || 'Invalid token' });
+    const message = error instanceof Error ? error.message : 'Invalid token';
+    reply.code(401).send({ error: 'unauthorized', message });
     return;
   }
 }
@@ -100,6 +102,7 @@ export async function authenticateAuth0(
  */
 export async function optionalAuth(
   request: AuthenticatedRequest,
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
   _reply: FastifyReply,
 ): Promise<void> {
   const authHeader = request.headers.authorization;

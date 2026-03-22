@@ -77,7 +77,7 @@ export async function registerProfileRoutes(app: FastifyInstance) {
     }
 
     // Build update
-    const update: Record<string, any> = { updatedAt: new Date() };
+    const update: Record<string, unknown> = { updatedAt: new Date() };
     if (body.displayName !== undefined) update.displayName = body.displayName;
     if (body.bio !== undefined) update.bio = body.bio;
     if (body.avatarUrl !== undefined) update.avatarUrl = body.avatarUrl;
@@ -133,6 +133,7 @@ export async function registerProfileRoutes(app: FastifyInstance) {
           };
 
         case 'full_social': {
+          // eslint-disable-next-line @typescript-eslint/no-unused-vars
           const { birthdayTime, birthLocation, contentHash, ...publicProfile } = profile;
           return publicProfile;
         }

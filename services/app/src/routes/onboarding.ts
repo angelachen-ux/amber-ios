@@ -38,8 +38,8 @@ const stepSchemas = {
   }),
 } as const;
 
-function getNextStep(current: string): typeof STEP_ORDER[number] {
-  const idx = STEP_ORDER.indexOf(current as any);
+function getNextStep(current: string): (typeof STEP_ORDER)[number] {
+  const idx = STEP_ORDER.indexOf(current as (typeof STEP_ORDER)[number]);
   return idx >= 0 && idx < STEP_ORDER.length - 1 ? STEP_ORDER[idx + 1] : 'complete';
 }
 
@@ -79,7 +79,7 @@ export async function registerOnboardingRoutes(app: FastifyInstance) {
     async (req: AuthenticatedRequest, reply) => {
       const { stepName } = req.params as { stepName: string };
 
-      if (!VALID_STEPS.includes(stepName as any)) {
+      if (!VALID_STEPS.includes(stepName as (typeof VALID_STEPS)[number])) {
         return reply.code(400).send({ error: 'invalid_step', message: `Invalid step: ${stepName}` });
       }
 
@@ -111,6 +111,7 @@ export async function registerOnboardingRoutes(app: FastifyInstance) {
         .returning();
 
       // Build profile update values based on step
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
       let profileUpdate: Record<string, any> = {};
       switch (stepName) {
         case 'basics': {

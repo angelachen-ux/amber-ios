@@ -20,8 +20,8 @@ export async function registerInsightRoutes(app: FastifyInstance) {
     const { priority, topic } = req.query as { priority?: string; topic?: string };
     const conditions = [eq(schema.insights.userId, req.userId!)];
     
-    if (priority) conditions.push(eq(schema.insights.priority, priority as any));
-    if (topic) conditions.push(eq(schema.insights.topic, topic as any));
+    if (priority) conditions.push(eq(schema.insights.priority, priority as typeof schema.insights.priority.enumValues[number]));
+    if (topic) conditions.push(eq(schema.insights.topic, topic as typeof schema.insights.topic.enumValues[number]));
     
     return await db
       .select()
