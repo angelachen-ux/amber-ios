@@ -1,105 +1,218 @@
-// ONBOARD-01/02: Onboarding flow state management
+//
+//  OnboardingViewModel.swift
+//  AmberApp
+//
+//  Created on 2026-03-04.
+//
 
-import Foundation
 import SwiftUI
-import SwiftData
-
-enum OnboardingStep: Int, CaseIterable {
-    case name
-    case birthday
-    case almaMater
-    case hometown
-    case privacyTier
-    case permissions
-    case done
-}
 
 @MainActor
-final class OnboardingViewModel: ObservableObject {
-    @Published var step: OnboardingStep = .name
+class OnboardingViewModel: ObservableObject {
+    // MARK: - Navigation
+    @Published var currentStep: OnboardingStep = .welcome
+
+    // MARK: - User Data
     @Published var displayName: String = ""
-    @Published var birthday: Date = Calendar.current.date(byAdding: .year, value: -22, to: Date()) ?? Date()
-    @Published var birthdayLocation: String = ""
-    @Published var almaMater: String = ""
+    @Published var username: String = ""
+    @Published var birthday: Date?
+    @Published var birthdayTime: Date?
+    @Published var birthLocation: String = ""
     @Published var hometown: String = ""
     @Published var currentCity: String = ""
-    @Published var selectedTier: PrivacyTier = .localOnly
-    @Published var isLoading = false
+    @Published var almaMater: String = ""
+
+    // MARK: - Privacy
+    @Published var selectedPrivacyTier: String = "selective_cloud"
+
+    // MARK: - Permissions
+    @Published var contactsPermission: Bool = false
+    @Published var locationPermission: Bool = false
+    @Published var healthKitPermission: Bool = false
+    @Published var calendarPermission: Bool = false
+
+    // MARK: - State
+    @Published var isLoading: Bool = false
     @Published var error: String?
 
-    private let contactService = ContactGraphService()
-    private let notificationService = NotificationService.shared
+    private let api = APIClient.shared
+    private let dateFormatter: ISO8601DateFormatter = {
+        let f = ISO8601DateFormatter()
+        f.formatOptions = [.withInternetDateTime]
+        return f
+    }()
 
-    var horoscopeSign: String { deriveHoroscope(from: birthday) }
+    // MARK: - Derived
+    var derivedHoroscope: HoroscopeSign? {
+        guard let birthday else { return nil }
+        return HoroscopeSign.from(date: birthday)
+    }
 
-    var canAdvance: Bool {
-        switch step {
-        case .name:        return !displayName.trimmingCharacters(in: .whitespaces).isEmpty
-        case .birthday:    return true
-        case .almaMater:   return true
-        case .hometown:    return true
-        case .privacyTier: return true
-        case .permissions: return true
-        case .done:        return false
+    // MARK: - Navigation Methods
+
+    func nextStep() {
+        guard let nextIndex = OnboardingStep.allCases.firstIndex(of: currentStep)
+                .map({ OnboardingStep.allCases.index(after: $0) }),
+              nextIndex < OnboardingStep.allCases.endIndex else { return }
+
+        withAnimation(.spring(response: 0.4, dampingFraction: 0.85)) {
+            currentStep = OnboardingStep.allCases[nextIndex]
         }
     }
 
-    func advance() {
-        guard let next = OnboardingStep(rawValue: step.rawValue + 1) else { return }
-        withAnimation(.easeInOut(duration: 0.3)) { step = next }
+    func previousStep() {
+        guard let currentIndex = OnboardingStep.allCases.firstIndex(of: currentStep),
+              currentIndex > OnboardingStep.allCases.startIndex else { return }
+
+        let prevIndex = OnboardingStep.allCases.index(before: currentIndex)
+        withAnimation(.spring(response: 0.4, dampingFraction: 0.85)) {
+            currentStep = OnboardingStep.allCases[prevIndex]
+        }
     }
 
-    func saveProfile(context: ModelContext) async {
-        isLoading = true
-        defer { isLoading = false }
+    // MARK: - Submission
 
-        let profile = UserProfile(
+    func submitCurrentStep() {
+        error = nil
+
+        // Validate locally first
+        switch currentStep {
+        case .basics:
+            guard !displayName.trimmingCharacters(in: .whitespaces).isEmpty else {
+                error = "Please enter your name."
+                return
+            }
+        case .birthday:
+            guard birthday != nil else {
+                error = "Please select your birthday."
+                return
+            }
+        case .location:
+            guard !currentCity.trimmingCharacters(in: .whitespaces).isEmpty else {
+                error = "Please enter your current city."
+                return
+            }
+        default:
+            break
+        }
+
+        // Save locally as fallback
+        saveProfileLocally()
+
+        // Submit to API
+        let stepName = apiStepName(for: currentStep)
+        let stepData = buildStepData(for: currentStep)
+
+        if let stepName, let stepData {
+            isLoading = true
+            Task {
+                do {
+                    _ = try await api.submitOnboardingStep(step: stepName, data: stepData)
+                    isLoading = false
+                    nextStep()
+                } catch {
+                    // API failed — continue with local data, don't block navigation
+                    isLoading = false
+                    self.error = nil
+                    nextStep()
+                }
+            }
+        } else {
+            nextStep()
+        }
+    }
+
+    func completeOnboarding() {
+        saveProfileLocally()
+        UserDefaults.standard.set(true, forKey: "hasCompletedOnboarding")
+
+        Task {
+            do {
+                _ = try await api.completeOnboarding()
+            } catch {
+                // Onboarding still completes locally even if API fails
+            }
+        }
+    }
+
+    // MARK: - API Step Mapping
+
+    private func apiStepName(for step: OnboardingStep) -> String? {
+        switch step {
+        case .basics: return "basics"
+        case .birthday: return "birthday"
+        case .location: return "location"
+        case .education: return "education"
+        case .permissions: return "permissions"
+        case .privacyTier: return "privacy_tier"
+        case .welcome, .complete: return nil
+        }
+    }
+
+    private func buildStepData(for step: OnboardingStep) -> [String: Any]? {
+        switch step {
+        case .basics:
+            return ["displayName": displayName, "username": username]
+
+        case .birthday:
+            var data: [String: Any] = ["birthday": dateFormatter.string(from: birthday!)]
+            if let birthdayTime {
+                let timeFormatter = DateFormatter()
+                timeFormatter.dateFormat = "HH:mm"
+                data["birthdayTime"] = timeFormatter.string(from: birthdayTime)
+            }
+            if !birthLocation.isEmpty {
+                data["birthLocation"] = birthLocation
+            }
+            return data
+
+        case .location:
+            var data: [String: Any] = ["currentCity": currentCity]
+            if !hometown.isEmpty {
+                data["hometown"] = hometown
+            }
+            return data
+
+        case .education:
+            return ["almaMater": almaMater.isEmpty ? nil : almaMater].compactMapValues { $0 }
+
+        case .permissions:
+            return [
+                "contacts": contactsPermission,
+                "location": locationPermission,
+                "healthKit": healthKitPermission,
+                "calendar": calendarPermission
+            ]
+
+        case .privacyTier:
+            return ["tier": selectedPrivacyTier]
+
+        case .welcome, .complete:
+            return nil
+        }
+    }
+
+    // MARK: - Local Storage
+
+    private func saveProfileLocally() {
+        let profile = UserProfileData(
             displayName: displayName,
             birthday: birthday,
-            birthdayLocation: birthdayLocation.isEmpty ? nil : birthdayLocation,
-            horoscopeSign: horoscopeSign,
-            almaMater: almaMater.isEmpty ? nil : almaMater,
-            hometown: hometown.isEmpty ? nil : hometown,
-            currentCity: currentCity.isEmpty ? nil : currentCity,
-            privacyTier: selectedTier
+            birthdayTime: birthdayTime,
+            birthLocation: birthLocation,
+            hometown: hometown,
+            currentCity: currentCity,
+            almaMater: almaMater,
+            horoscopeSign: derivedHoroscope,
+            privacyTier: selectedPrivacyTier,
+            contactsPermission: contactsPermission,
+            locationPermission: locationPermission,
+            healthKitPermission: healthKitPermission,
+            calendarPermission: calendarPermission
         )
-        context.insert(profile)
-        try? context.save()
-    }
 
-    func requestPermissions(context: ModelContext) async {
-        // Contacts
-        let contacts = (try? await contactService.buildGraph(context: context)) ?? []
-        try? contactService.generateBirthdaySignals(contacts: contacts, context: context)
-
-        // Notifications
-        _ = await notificationService.requestAuthorization()
-
-        // Fetch pending signals and schedule local notifications
-        let signals = (try? context.fetch(FetchDescriptor<Signal>())) ?? []
-        await notificationService.scheduleLocalNotifications(for: signals)
-    }
-
-    // MARK: - Horoscope derivation
-
-    private func deriveHoroscope(from date: Date) -> String {
-        let cal = Calendar.current
-        let m = cal.component(.month, from: date)
-        let d = cal.component(.day, from: date)
-        switch (m, d) {
-        case (3, 21...), (4, ...19): return "Aries ♈"
-        case (4, 20...), (5, ...20): return "Taurus ♉"
-        case (5, 21...), (6, ...20): return "Gemini ♊"
-        case (6, 21...), (7, ...22): return "Cancer ♋"
-        case (7, 23...), (8, ...22): return "Leo ♌"
-        case (8, 23...), (9, ...22): return "Virgo ♍"
-        case (9, 23...), (10, ...22): return "Libra ♎"
-        case (10, 23...), (11, ...21): return "Scorpio ♏"
-        case (11, 22...), (12, ...21): return "Sagittarius ♐"
-        case (12, 22...), (1, ...19): return "Capricorn ♑"
-        case (1, 20...), (2, ...18): return "Aquarius ♒"
-        case (2, 19...), (3, ...20): return "Pisces ♓"
-        default: return "Capricorn ♑"
+        if let data = try? JSONEncoder().encode(profile) {
+            UserDefaults.standard.set(data, forKey: "userProfileData")
         }
     }
 }

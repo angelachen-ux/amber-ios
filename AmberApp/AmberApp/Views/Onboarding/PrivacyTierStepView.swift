@@ -1,110 +1,124 @@
-// DESIGN-03 / PRIVACY-01: Privacy tier selection screen
+//
+//  PrivacyTierStepView.swift
+//  AmberApp
+//
+//  Created on 2026-03-04.
+//
 
 import SwiftUI
 
 struct PrivacyTierStepView: View {
-    @Binding var selected: PrivacyTier
+    @ObservedObject var viewModel: OnboardingViewModel
+
+    private let tiers: [(id: String, icon: String, title: String, subtitle: String, description: String)] = [
+        (
+            id: "local_only",
+            icon: "lock.fill",
+            title: "Local Only",
+            subtitle: "Maximum privacy",
+            description: "Everything stays on your device. No cloud sync, no social features."
+        ),
+        (
+            id: "selective_cloud",
+            icon: "cloud.fill",
+            title: "Selective Cloud",
+            subtitle: "Recommended",
+            description: "You choose what to share. Your data syncs securely, and you control visibility."
+        ),
+        (
+            id: "full_social",
+            icon: "globe",
+            title: "Full Social",
+            subtitle: "Full experience",
+            description: "Full connection experience. Share insights and engage with your network."
+        )
+    ]
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            Spacer()
+        VStack(spacing: 0) {
+            Spacer().frame(height: 40)
 
-            Text("How private do you want to be?")
+            Text("Choose your privacy level")
                 .font(.amberTitle)
-                .foregroundColor(.amberText)
-                .padding(.horizontal, 32)
+                .foregroundColor(.white)
                 .padding(.bottom, 8)
 
-            Text("You can change this any time in Settings.")
+            Text("You can change this anytime in Settings.")
                 .font(.amberBody)
-                .foregroundColor(.amberSecondaryText)
-                .padding(.horizontal, 32)
+                .foregroundColor(.white.opacity(0.6))
                 .padding(.bottom, 32)
 
-            ScrollView {
-                VStack(spacing: 16) {
-                    ForEach(PrivacyTier.allCases, id: \.self) { tier in
-                        PrivacyTierCard(tier: tier, isSelected: selected == tier) {
-                            withAnimation(.spring(response: 0.3)) { selected = tier }
+            VStack(spacing: 12) {
+                ForEach(tiers, id: \.id) { tier in
+                    let isSelected = viewModel.selectedPrivacyTier == tier.id
+
+                    Button(action: {
+                        withAnimation(.spring(response: 0.3)) {
+                            viewModel.selectedPrivacyTier = tier.id
                         }
+                    }) {
+                        HStack(spacing: 14) {
+                            Image(systemName: tier.icon)
+                                .font(.system(size: 24))
+                                .foregroundColor(isSelected ? .amberBlue : .white.opacity(0.5))
+                                .frame(width: 36)
+
+                            VStack(alignment: .leading, spacing: 4) {
+                                HStack {
+                                    Text(tier.title)
+                                        .font(.system(size: 16, weight: .semibold))
+                                        .foregroundColor(.white)
+                                    if tier.id == "selective_cloud" {
+                                        Text("Recommended")
+                                            .font(.system(size: 10, weight: .medium))
+                                            .foregroundColor(.amberBlue)
+                                            .padding(.horizontal, 6)
+                                            .padding(.vertical, 2)
+                                            .background(
+                                                Capsule().fill(Color.amberBlue.opacity(0.2))
+                                            )
+                                    }
+                                }
+                                Text(tier.description)
+                                    .font(.amberCaption)
+                                    .foregroundColor(.white.opacity(0.6))
+                                    .lineLimit(2)
+                                    .multilineTextAlignment(.leading)
+                            }
+
+                            Spacer()
+                        }
+                        .padding(16)
+                        .background(
+                            RoundedRectangle(cornerRadius: 14)
+                                .fill(.ultraThinMaterial)
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: 14)
+                                        .stroke(isSelected ? Color.amberBlue : Color.white.opacity(0.1),
+                                                lineWidth: isSelected ? 1.5 : 1)
+                                )
+                        )
                     }
                 }
-                .padding(.horizontal, 24)
             }
+            .padding(.horizontal, 24)
 
             Spacer()
-        }
-    }
-}
 
-struct PrivacyTierCard: View {
-    let tier: PrivacyTier
-    let isSelected: Bool
-    let onSelect: () -> Void
-
-    private var icon: String {
-        switch tier {
-        case .localOnly:  return "lock.shield.fill"
-        case .selective:  return "slider.horizontal.3"
-        case .fullSocial: return "person.3.fill"
-        }
-    }
-
-    private var accentColor: Color {
-        switch tier {
-        case .localOnly:  return .blue
-        case .selective:  return .amberGold
-        case .fullSocial: return .green
-        }
-    }
-
-    var body: some View {
-        Button(action: onSelect) {
-            VStack(alignment: .leading, spacing: 12) {
-                HStack(spacing: 12) {
-                    Image(systemName: icon)
-                        .font(.title2)
-                        .foregroundColor(accentColor)
-                        .frame(width: 36)
-
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text(tier.displayName)
-                            .font(.amberBody.weight(.semibold))
-                            .foregroundColor(.amberText)
-                        Text(tier.tagline)
-                            .font(.amberCaption)
-                            .foregroundColor(.amberSecondaryText)
-                    }
-
-                    Spacer()
-
-                    if isSelected {
-                        Image(systemName: "checkmark.circle.fill")
-                            .foregroundColor(accentColor)
-                            .font(.title3)
-                    }
-                }
-
-                // Feature list
-                VStack(alignment: .leading, spacing: 4) {
-                    ForEach(tier.features, id: \.self) { feature in
-                        Label(feature, systemImage: "checkmark")
-                            .font(.amberCaption)
-                            .foregroundColor(.amberSecondaryText)
-                    }
-                }
-                .padding(.leading, 48)
-            }
-            .padding(16)
-            .background(
-                RoundedRectangle(cornerRadius: 16)
-                    .fill(Color.amberCardBackground)
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 16)
-                            .stroke(isSelected ? accentColor : Color.clear, lineWidth: 2)
+            // Continue button
+            Button(action: { viewModel.submitCurrentStep() }) {
+                Text("Continue")
+                    .font(.system(size: 17, weight: .semibold))
+                    .foregroundColor(.white)
+                    .frame(maxWidth: .infinity)
+                    .frame(height: 54)
+                    .background(
+                        RoundedRectangle(cornerRadius: 14)
+                            .fill(Color.amberBlue)
                     )
-            )
+            }
+            .padding(.horizontal, 24)
+            .padding(.bottom, 40)
         }
-        .buttonStyle(.plain)
     }
 }

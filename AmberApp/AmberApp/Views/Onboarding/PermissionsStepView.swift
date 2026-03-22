@@ -1,127 +1,115 @@
-// ONBOARD-02: Permissions request flow — contextual "why" screens before each system prompt
+//
+//  PermissionsStepView.swift
+//  AmberApp
+//
+//  Created on 2026-03-04.
+//
 
 import SwiftUI
-import SwiftData
 
 struct PermissionsStepView: View {
-    @ObservedObject var vm: OnboardingViewModel
-    @Environment(\.modelContext) private var context
-    @State private var isRequesting = false
-    @State private var done = false
+    @ObservedObject var viewModel: OnboardingViewModel
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 0) {
-            Spacer()
-
-            VStack(alignment: .leading, spacing: 16) {
-                Text("A few things to make Amber work")
-                    .font(.amberTitle)
-                    .foregroundColor(.amberText)
-
-                Text("Amber needs access to your contacts and notifications to surface suggestions. Your data never leaves your device unless you chose a cloud tier.")
-                    .font(.amberBody)
-                    .foregroundColor(.amberSecondaryText)
-                    .fixedSize(horizontal: false, vertical: true)
-            }
-            .padding(.horizontal, 32)
-            .padding(.bottom, 32)
-
+        ScrollView {
             VStack(spacing: 0) {
-                PermissionRow(
-                    icon: "person.crop.circle.fill",
-                    color: .blue,
-                    title: "Contacts",
-                    description: "Amber reads your contact list to find the people you care about and remind you when they need you."
-                )
-                Divider().padding(.leading, 64)
-                PermissionRow(
-                    icon: "bell.badge.fill",
-                    color: .amberGold,
-                    title: "Notifications",
-                    description: "Amber notifies you at the right moment — never at 3am, never more than you want."
-                )
-                Divider().padding(.leading, 64)
-                PermissionRow(
-                    icon: "calendar",
-                    color: .green,
-                    title: "Calendar",
-                    description: "To find shared events — like a concert you're both attending — so you can reach out before it happens."
-                )
-                Divider().padding(.leading, 64)
-                PermissionRow(
-                    icon: "heart.fill",
-                    color: .red,
-                    title: "Health (optional)",
-                    description: "Activity data unlocks behavioral insights in future versions. Nothing is shared without your permission."
-                )
-            }
-            .background(Color.amberCardBackground)
-            .cornerRadius(16)
-            .padding(.horizontal, 24)
+                Spacer().frame(height: 40)
 
-            Spacer()
+                Text("Help Amber help you")
+                    .font(.amberTitle)
+                    .foregroundColor(.white)
+                    .padding(.bottom, 8)
 
-            Button {
-                isRequesting = true
-                Task {
-                    await vm.requestPermissions(context: context)
-                    isRequesting = false
-                    vm.advance()
+                Text("Grant permissions to unlock the full experience. You can change these anytime.")
+                    .font(.amberBody)
+                    .foregroundColor(.white.opacity(0.6))
+                    .multilineTextAlignment(.center)
+                    .padding(.horizontal, 24)
+                    .padding(.bottom, 32)
+
+                VStack(spacing: 12) {
+                    permissionCard(
+                        icon: "person.crop.circle",
+                        title: "Contacts",
+                        description: "Find friends already on Amber and strengthen your network.",
+                        isOn: $viewModel.contactsPermission
+                    )
+
+                    permissionCard(
+                        icon: "location.fill",
+                        title: "Location",
+                        description: "Get relevant local connections and location-based insights.",
+                        isOn: $viewModel.locationPermission
+                    )
+
+                    permissionCard(
+                        icon: "heart.fill",
+                        title: "Health",
+                        description: "Track physical wellness and integrate Apple Health data.",
+                        isOn: $viewModel.healthKitPermission
+                    )
+
+                    permissionCard(
+                        icon: "calendar",
+                        title: "Calendar",
+                        description: "Smart reminders to nurture your important relationships.",
+                        isOn: $viewModel.calendarPermission
+                    )
                 }
-            } label: {
-                HStack {
-                    if isRequesting {
-                        ProgressView().tint(.white)
-                    }
-                    Text(isRequesting ? "Setting up…" : "Grant Access & Continue")
-                        .font(.amberBody.weight(.semibold))
+                .padding(.horizontal, 24)
+
+                Spacer().frame(height: 40)
+
+                // Continue button
+                Button(action: { viewModel.submitCurrentStep() }) {
+                    Text("Continue")
+                        .font(.system(size: 17, weight: .semibold))
                         .foregroundColor(.white)
+                        .frame(maxWidth: .infinity)
+                        .frame(height: 54)
+                        .background(
+                            RoundedRectangle(cornerRadius: 14)
+                                .fill(Color.amberBlue)
+                        )
                 }
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, 16)
-                .background(Color.amberGold)
-                .cornerRadius(16)
+                .padding(.horizontal, 24)
+                .padding(.bottom, 40)
             }
-            .disabled(isRequesting)
-            .padding(.horizontal, 32)
-            .padding(.bottom, 16)
-
-            Button("Skip for now") {
-                vm.advance()
-            }
-            .font(.amberCaption)
-            .foregroundColor(.amberSecondaryText)
-            .frame(maxWidth: .infinity)
-            .padding(.bottom, 32)
         }
+        .scrollIndicators(.hidden)
     }
-}
 
-private struct PermissionRow: View {
-    let icon: String
-    let color: Color
-    let title: String
-    let description: String
-
-    var body: some View {
-        HStack(alignment: .top, spacing: 16) {
+    private func permissionCard(icon: String, title: String, description: String, isOn: Binding<Bool>) -> some View {
+        HStack(spacing: 14) {
             Image(systemName: icon)
-                .font(.title2)
-                .foregroundColor(color)
-                .frame(width: 32, height: 32)
-                .padding(.leading, 16)
+                .font(.system(size: 24))
+                .foregroundColor(.amberBlue)
+                .frame(width: 36)
 
-            VStack(alignment: .leading, spacing: 4) {
+            VStack(alignment: .leading, spacing: 2) {
                 Text(title)
-                    .font(.amberBody.weight(.semibold))
-                    .foregroundColor(.amberText)
+                    .font(.system(size: 16, weight: .semibold))
+                    .foregroundColor(.white)
                 Text(description)
                     .font(.amberCaption)
-                    .foregroundColor(.amberSecondaryText)
-                    .fixedSize(horizontal: false, vertical: true)
+                    .foregroundColor(.white.opacity(0.6))
+                    .lineLimit(2)
             }
-            .padding(.vertical, 16)
-            .padding(.trailing, 16)
+
+            Spacer()
+
+            Toggle("", isOn: isOn)
+                .labelsHidden()
+                .tint(.amberBlue)
         }
+        .padding(16)
+        .background(
+            RoundedRectangle(cornerRadius: 14)
+                .fill(.ultraThinMaterial)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 14)
+                        .stroke(Color.white.opacity(0.1), lineWidth: 1)
+                )
+        )
     }
 }
