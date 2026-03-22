@@ -48,6 +48,7 @@ export async function registerCircleRoutes(app: FastifyInstance) {
     const [circle] = await db
       .insert(schema.circles)
       .values({
+        ownerId: req.userId!,
         createdByUserId: req.userId!,
         name: body.name,
         visibility: body.visibility,

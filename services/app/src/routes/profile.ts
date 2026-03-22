@@ -109,7 +109,7 @@ export async function registerProfileRoutes(app: FastifyInstance) {
     '/profile/:userId',
     { preHandler: authenticateAuth0 },
     async (req: AuthenticatedRequest, reply) => {
-      const targetUserId = Number(req.params.userId);
+      const targetUserId = Number((req.params as { userId: string }).userId);
 
       const [profile] = await db
         .select()
