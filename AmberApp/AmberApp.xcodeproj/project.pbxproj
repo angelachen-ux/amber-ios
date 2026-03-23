@@ -6,12 +6,16 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		EF4018952F58961500164AC6 /* Auth0 in Frameworks */ = {isa = PBXBuildFile; productRef = EF4018942F58961500164AC6 /* Auth0 */; };
+/* End PBXBuildFile section */
+
 /* Begin PBXFileReference section */
 		8DC8A4DF2F1C9E3B00B2E249 /* AmberApp.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = AmberApp.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
-		8DC8A4F02F1C9E3B00B2E249 /* PBXFileSystemSynchronizedBuildFileExceptionSet */ = {
+		8DC8A4F02F1C9E3B00B2E249 /* Exceptions for "AmberApp" folder in "AmberApp" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
 				Info.plist,
@@ -24,7 +28,7 @@
 		8DC8A4E12F1C9E3B00B2E249 /* AmberApp */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			exceptions = (
-				8DC8A4F02F1C9E3B00B2E249 /* PBXFileSystemSynchronizedBuildFileExceptionSet */,
+				8DC8A4F02F1C9E3B00B2E249 /* Exceptions for "AmberApp" folder in "AmberApp" target */,
 			);
 			path = AmberApp;
 			sourceTree = "<group>";
@@ -36,6 +40,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				EF4018952F58961500164AC6 /* Auth0 in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -78,6 +83,7 @@
 			);
 			name = AmberApp;
 			packageProductDependencies = (
+				EF4018942F58961500164AC6 /* Auth0 */,
 			);
 			productName = AmberApp;
 			productReference = 8DC8A4DF2F1C9E3B00B2E249 /* AmberApp.app */;
@@ -107,6 +113,9 @@
 			);
 			mainGroup = 8DC8A4D62F1C9E3B00B2E249;
 			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				EF4018932F58961500164AC6 /* XCRemoteSwiftPackageReference "Auth0" */,
+			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 8DC8A4E02F1C9E3B00B2E249 /* Products */;
 			projectDirPath = "";
@@ -347,6 +356,25 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		EF4018932F58961500164AC6 /* XCRemoteSwiftPackageReference "Auth0" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/auth0/Auth0.swift";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 2.17.1;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		EF4018942F58961500164AC6 /* Auth0 */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = EF4018932F58961500164AC6 /* XCRemoteSwiftPackageReference "Auth0" */;
+			productName = Auth0;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = 8DC8A4D72F1C9E3B00B2E249 /* Project object */;
 }

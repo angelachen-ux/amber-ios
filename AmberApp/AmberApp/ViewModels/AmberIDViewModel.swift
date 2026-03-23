@@ -14,6 +14,15 @@ class AmberIDViewModel: ObservableObject {
     @Published var stories: [AmberStory] = []
     @Published var dailyDigests: [DailyDigest] = []
 
+    // Profile fields from API
+    @Published var username: String = ""
+    @Published var currentCity: String = ""
+    @Published var almaMater: String = ""
+    @Published var privacyTier: String = ""
+    @Published var birthdayTime: String = ""
+    @Published var birthLocation: String = ""
+    @Published var isProfileLoading: Bool = true
+
     // Apple integrations
     @Published var appleContactsConnected = false
     @Published var appleHealthConnected = false
@@ -45,11 +54,116 @@ class AmberIDViewModel: ObservableObject {
     @Published var sleepHours: Double = 7.2          // 7.2 hours of sleep
     @Published var screenTimeHours: Double = 3.5     // 3.5 hours screen time
 
+    private let iso8601Formatter: ISO8601DateFormatter = {
+        let f = ISO8601DateFormatter()
+        f.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        return f
+    }()
+
+    private let dateOnlyFormatter: DateFormatter = {
+        let f = DateFormatter()
+        f.dateFormat = "yyyy-MM-dd"
+        return f
+    }()
+
     init() {
         loadMockData()
         loadDailyDigests()
         startLiveTracking()
+        loadProfile()
     }
+
+    // MARK: - Profile Loading
+
+    func loadProfile() {
+        isProfileLoading = true
+
+        Task {
+            do {
+                let profile = try await APIClient.shared.getProfile()
+                applyProfileResponse(profile)
+                isProfileLoading = false
+            } catch {
+                // Fall back to local UserDefaults data
+                loadProfileFromLocal()
+                isProfileLoading = false
+            }
+        }
+    }
+
+    private func applyProfileResponse(_ profile: ProfileResponse) {
+        if let name = profile.displayName, !name.isEmpty {
+            user.name = name
+        }
+        if let uname = profile.username {
+            username = uname
+        }
+        if let birthdayStr = profile.birthday {
+            if let date = iso8601Formatter.date(from: birthdayStr) {
+                user.birthday = date
+            } else if let date = dateOnlyFormatter.date(from: birthdayStr) {
+                user.birthday = date
+            }
+        }
+        if let city = profile.currentCity {
+            currentCity = city
+        }
+        if let school = profile.almaMater {
+            almaMater = school
+        }
+        if let privacy = profile.privacyTier {
+            privacyTier = privacy
+        }
+        if let bTime = profile.birthdayTime {
+            birthdayTime = bTime
+        }
+        if let bLocation = profile.birthLocation {
+            birthLocation = bLocation
+        }
+        if let avatarUrl = profile.avatarUrl {
+            user.avatarURL = avatarUrl
+        }
+
+        // Map horoscope from personality profiles
+        if let personalityProfiles = profile.personalityProfiles {
+            for pp in personalityProfiles where pp.profileType == "horoscope" {
+                if let result = pp.result,
+                   let sign = ZodiacSign.allCases.first(where: { $0.rawValue.lowercased() == result.sign.lowercased() }) {
+                    user.zodiacSun = sign
+                }
+            }
+        }
+    }
+
+    private func loadProfileFromLocal() {
+        guard let data = UserDefaults.standard.data(forKey: "userProfileData"),
+              let localProfile = try? JSONDecoder().decode(UserProfileData.self, from: data) else {
+            return
+        }
+
+        if !localProfile.displayName.isEmpty {
+            user.name = localProfile.displayName
+        }
+        if let birthday = localProfile.birthday {
+            user.birthday = birthday
+        }
+        if !localProfile.currentCity.isEmpty {
+            currentCity = localProfile.currentCity
+        }
+        if !localProfile.almaMater.isEmpty {
+            almaMater = localProfile.almaMater
+        }
+        if !localProfile.privacyTier.isEmpty {
+            privacyTier = localProfile.privacyTier
+        }
+        if let horoscope = localProfile.horoscopeSign {
+            if let sign = ZodiacSign.allCases.first(where: { $0.rawValue.lowercased() == horoscope.name.lowercased() }) {
+                user.zodiacSun = sign
+            }
+        }
+    }
+
+    // MARK: - Live Tracking
 
     private func startLiveTracking() {
         // In production, this would connect to HealthKit and Screen Time APIs

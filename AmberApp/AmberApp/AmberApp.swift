@@ -6,60 +6,74 @@
 //
 
 import SwiftUI
-import SwiftData
 
 @main
 struct AmberApp: App {
+    @StateObject var authViewModel = AuthViewModel()
+    @AppStorage("hasCompletedOnboarding") var hasCompletedOnboarding = false
+
     var body: some Scene {
         WindowGroup {
-            RootView()
-        }
-        .modelContainer(for: [UserProfile.self, Contact.self, Signal.self, Circle.self])
-    }
-}
-
-// MARK: - Root View (handles onboarding gate)
-
-struct RootView: View {
-    @Environment(\.modelContext) private var context
-    @Query private var profiles: [UserProfile]
-
-    private var isOnboarded: Bool {
-        profiles.first?.onboardingComplete == true
-    }
-
-    var body: some View {
-        if isOnboarded {
-            MainTabView()
-        } else {
-            OnboardingView {
-                // onComplete — SwiftData @Query will update automatically
+            Group {
+                if authViewModel.isLoading {
+                    // Splash / session check
+                    ZStack {
+                        Color.amberBackground.ignoresSafeArea()
+                        ProgressView()
+                            .tint(.amberBlue)
+                    }
+                } else if !authViewModel.isAuthenticated {
+                    LoginView()
+                        .environmentObject(authViewModel)
+                } else if !hasCompletedOnboarding {
+                    OnboardingContainerView {
+                        withAnimation(.spring(response: 0.5, dampingFraction: 0.85)) {
+                            hasCompletedOnboarding = true
+                        }
+                    }
+                    .environmentObject(authViewModel)
+                } else {
+                    ContentView()
+                        .environmentObject(authViewModel)
+                }
+            }
+            .onAppear {
+                authViewModel.checkSession()
             }
         }
     }
 }
 
-// MARK: - Main Tab View (post-onboarding)
-
-struct MainTabView: View {
-    @State private var selectedTab = 1
+struct ContentView: View {
+    @EnvironmentObject var authViewModel: AuthViewModel
+    @State private var selectedTab = 1 // Start on Network (center)
+    @State private var searchText = ""
+    @State private var networkInputText = ""
+    @FocusState private var isNetworkInputFocused: Bool
 
     var body: some View {
         ZStack {
+            // Content views
             Group {
                 if selectedTab == 0 {
-                    ConnectionsView(searchText: .constant(""))
+                    ConnectionsView(searchText: $searchText)
                 } else if selectedTab == 1 {
-                    SuggestionFeedView()
+                    DiscoverView()
                 } else {
                     AmberIDView()
                 }
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
 
+            // Network input bar - only shows when on Network tab
             VStack {
                 Spacer()
-                CustomTabBar(selectedTab: $selectedTab, searchText: .constant(""))
+                if selectedTab == 1 {
+                    NetworkInputBar(inputText: $networkInputText, isInputFocused: $isNetworkInputFocused)
+                        .padding(.bottom, 12)
+                        .transition(.move(edge: .bottom).combined(with: .opacity))
+                }
+                CustomTabBar(selectedTab: $selectedTab, searchText: $searchText)
             }
             .ignoresSafeArea(.keyboard)
         }

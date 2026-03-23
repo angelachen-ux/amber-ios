@@ -23,14 +23,14 @@ export async function registerPipelineRoutes(app: FastifyInstance) {
    * POST /pipelines/run
    * Run a pipeline (for authenticated user)
    */
-  app.post('/pipelines/run', { preHandler: authenticate }, async (req: AuthenticatedRequest, _reply) => {
+  app.post('/pipelines/run', { preHandler: authenticate }, async (req: AuthenticatedRequest) => {
     const body = PipelineSchema.parse(req.body);
     const { input, ...def } = body;
     
     // Save pipeline definition
     const [pipelineDef] = await db
       .insert(schema.pipelineDefs)
-      .values({ userId: req.userId!, name: def.name, def: def as any })
+      .values({ userId: req.userId!, name: def.name, def: def as unknown })
       .returning();
     
     // Create run record
@@ -52,13 +52,13 @@ export async function registerPipelineRoutes(app: FastifyInstance) {
         .set({
           status: 'succeeded',
           log: logEntries,
-          result: result as any,
+          result: result as unknown,
           endedAt: new Date(),
         })
         .where(eq(schema.pipelineRuns.id, run.id));
       return { runId: String(run.id), status: 'succeeded', result };
-    } catch (e: any) {
-      logEntries.push(`error: ${e?.message || String(e)}`);
+    } catch (e: unknown) {
+      logEntries.push(`error: ${e instanceof Error ? e.message : String(e)}`);
       await db
         .update(schema.pipelineRuns)
         .set({
@@ -67,7 +67,7 @@ export async function registerPipelineRoutes(app: FastifyInstance) {
           endedAt: new Date(),
         })
         .where(eq(schema.pipelineRuns.id, run.id));
-      return { runId: String(run.id), status: 'failed', error: e?.message || String(e) };
+      return { runId: String(run.id), status: 'failed', error: e instanceof Error ? e.message : String(e) };
     }
   });
 

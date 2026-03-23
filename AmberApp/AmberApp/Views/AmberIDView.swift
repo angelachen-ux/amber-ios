@@ -9,6 +9,7 @@ import SwiftUI
 
 struct AmberIDView: View {
     @StateObject private var viewModel = AmberIDViewModel()
+    @EnvironmentObject var authViewModel: AuthViewModel
     @State private var journalText = ""
     @State private var showShareSheet = false
 
@@ -35,7 +36,7 @@ struct AmberIDView: View {
                             .font(.title2)
                             .fontWeight(.bold)
 
-                        Text("@sagartiwari")
+                        Text("@\(viewModel.username)")
                             .font(.subheadline)
                             .foregroundStyle(.secondary)
 
@@ -493,6 +494,19 @@ struct AmberIDView: View {
                         }
                         .padding(.horizontal)
                     }
+
+                    // Sign Out
+                    Button(action: {
+                        UserDefaults.standard.set(false, forKey: "hasCompletedOnboarding")
+                        authViewModel.logout()
+                    }) {
+                        Text("Sign Out")
+                            .font(.body)
+                            .foregroundColor(.red)
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, 12)
+                    }
+                    .padding(.horizontal)
                 }
                 .padding(.vertical)
                 .padding(.bottom, 140) // Space for tab bar
@@ -515,8 +529,17 @@ struct AmberIDView: View {
                     .presentationDetents([.medium])
                     .presentationDragIndicator(.hidden)
             }
+            .overlay {
+                if viewModel.isProfileLoading {
+                    ZStack {
+                        Color.black.opacity(0.3)
+                            .ignoresSafeArea()
+                        ProgressView()
+                            .tint(.amberBlue)
+                            .scaleEffect(1.2)
+                    }
+                }
+            }
         }
     }
 }
-
-

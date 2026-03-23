@@ -8,11 +8,11 @@
 import { FastifyInstance } from 'fastify';
 import { z } from 'zod';
 import { db, schema } from '../db/client.js';
-import { eq, and, inArray, lte, gte, isNull } from 'drizzle-orm';
+import { eq, and, inArray, lte } from 'drizzle-orm';
 import { authenticate, AuthenticatedRequest } from '../auth/middleware.js';
 
 const ReactSchema = z.object({
-  action: z.enum(['acted', 'dismissed']),
+  action: z.enum(['acted_on', 'dismissed']),
 });
 
 const ContactBatchSchema = z.object({
@@ -66,8 +66,8 @@ export async function registerSignalRoutes(app: FastifyInstance) {
       .from(schema.signals)
       .where(
         and(
-          eq(schema.signals.userId, req.userId!),
-          inArray(schema.signals.status, ['pending', 'sent', 'viewed']),
+          eq(schema.signals.userId!, req.userId!),
+          inArray(schema.signals.status, ['pending', 'sent', 'seen']),
         ),
       )
       .orderBy(schema.signals.triggerDate);
@@ -85,14 +85,14 @@ export async function registerSignalRoutes(app: FastifyInstance) {
       const [signal] = await db
         .select()
         .from(schema.signals)
-        .where(and(eq(schema.signals.id, id), eq(schema.signals.userId, req.userId!)))
+        .where(and(eq(schema.signals.id, id), eq(schema.signals.userId!, req.userId!)))
         .limit(1);
       if (!signal) return reply.code(404).send({ error: 'not_found' });
 
       if (signal.status === 'sent') {
         await db
           .update(schema.signals)
-          .set({ status: 'viewed' })
+          .set({ status: 'seen' })
           .where(eq(schema.signals.id, id));
       }
       return signal;
@@ -101,7 +101,7 @@ export async function registerSignalRoutes(app: FastifyInstance) {
 
   /**
    * POST /signals/:id/react
-   * SIGNAL-03: Record user action on a suggestion (acted | dismissed)
+   * SIGNAL-03: Record user action on a suggestion (acted_on | dismissed)
    */
   app.post<{ Params: { id: string } }>(
     '/signals/:id/react',
@@ -113,7 +113,7 @@ export async function registerSignalRoutes(app: FastifyInstance) {
       const [signal] = await db
         .select()
         .from(schema.signals)
-        .where(and(eq(schema.signals.id, id), eq(schema.signals.userId, req.userId!)))
+        .where(and(eq(schema.signals.id, id), eq(schema.signals.userId!, req.userId!)))
         .limit(1);
       if (!signal) return reply.code(404).send({ error: 'not_found' });
 
@@ -121,7 +121,7 @@ export async function registerSignalRoutes(app: FastifyInstance) {
         .update(schema.signals)
         .set({
           status: action,
-          actedAt: action === 'acted' ? new Date() : null,
+          actedAt: action === 'acted_on' ? new Date() : null,
         })
         .where(eq(schema.signals.id, id))
         .returning();
@@ -200,26 +200,23 @@ export async function registerSignalRoutes(app: FastifyInstance) {
         // SIGNAL-01: Generate birthday signals if birthday is known
         if (c.birthday) {
           const birthday = new Date(c.birthday);
-          const triggerTypes: Array<typeof schema.signals.$inferInsert.signalType> = [
-            'birthday_3day',
-            'birthday_1day',
-            'birthday_today',
-          ];
           const triggerDates = birthdayTriggerDates(birthday, thisYear);
 
           for (let i = 0; i < 3; i++) {
             const triggerDate = triggerDates[i];
             if (triggerDate < now) continue; // past — skip
 
-            const dk = dedupeKey(userId, contactId, triggerTypes[i], triggerDate.toISOString().slice(0, 10));
+            const dk = dedupeKey(userId, contactId, 'birthday', triggerDate.toISOString().slice(0, 10));
             await db
               .insert(schema.signals)
               .values({
+                sourceUserId: userId,
                 userId,
                 contactId,
-                signalType: triggerTypes[i],
+                signalType: 'birthday',
                 triggerDate,
                 status: 'pending',
+                data: { contactName: c.name, daysUntil: 3 - i },
                 payload: { contactName: c.name },
                 dedupeKey: dk,
               })
@@ -263,15 +260,17 @@ export async function registerSignalRoutes(app: FastifyInstance) {
           const contact = contactByExtId.get(extId);
           if (!contact) continue;
 
-          const dk = dedupeKey(userId, contact.id, 'shared_calendar_event', event.eventId);
+          const dk = dedupeKey(userId, contact.id, 'shared_event', event.eventId);
           await db
             .insert(schema.signals)
             .values({
+              sourceUserId: userId,
               userId,
               contactId: contact.id,
-              signalType: 'shared_calendar_event',
+              signalType: 'shared_event',
               triggerDate: startDate,
               status: 'pending',
+              data: { eventId: event.eventId, eventTitle: event.title, contactName: contact.name },
               payload: { eventId: event.eventId, eventTitle: event.title, contactName: contact.name },
               dedupeKey: dk,
             })
@@ -307,7 +306,7 @@ export async function registerSignalRoutes(app: FastifyInstance) {
       const myCircleIds = await db
         .select({ circleId: schema.circleMembers.circleId })
         .from(schema.circleMembers)
-        .where(eq(schema.circleMembers.userId, userId));
+        .where(eq(schema.circleMembers.userId!, userId));
 
       if (myCircleIds.length === 0) return { matched: 0 };
 
@@ -317,7 +316,7 @@ export async function registerSignalRoutes(app: FastifyInstance) {
         .from(schema.circleMembers)
         .where(inArray(schema.circleMembers.circleId, circleIds));
 
-      const coMemberIds = [...new Set(coMembers.map((m) => m.userId).filter((id) => id !== userId))];
+      const coMemberIds = [...new Set(coMembers.map((m) => m.userId).filter((id): id is number => id !== null && id !== userId))];
       if (coMemberIds.length === 0) return { matched: 0 };
 
       const coProfiles = await db
@@ -327,10 +326,10 @@ export async function registerSignalRoutes(app: FastifyInstance) {
 
       let matched = 0;
       const matchTypes = [
-        { field: 'almaFkMater', label: 'alma mater' },
-        { field: 'hometown', label: 'hometown' },
-        { field: 'currentCity', label: 'current city' },
-      ] as const;
+        { field: 'almaMater' as const, label: 'alma mater' },
+        { field: 'hometown' as const, label: 'hometown' },
+        { field: 'currentCity' as const, label: 'current city' },
+      ];
 
       for (const peer of coProfiles) {
         for (const { field, label } of matchTypes) {
@@ -342,10 +341,12 @@ export async function registerSignalRoutes(app: FastifyInstance) {
           await db
             .insert(schema.signals)
             .values({
+              sourceUserId: userId,
               userId,
               signalType: 'questionnaire_match',
               triggerDate: new Date(),
               status: 'pending',
+              data: { peerUserId: peer.userId, matchType: label, matchValue: myVal },
               payload: { peerUserId: peer.userId, matchType: label, matchValue: myVal },
               dedupeKey: dk,
             })
@@ -372,9 +373,9 @@ export async function registerSignalRoutes(app: FastifyInstance) {
       .from(schema.signals)
       .where(
         and(
-          eq(schema.signals.userId, userId),
+          eq(schema.signals.userId!, userId),
           eq(schema.signals.status, 'pending'),
-          lte(schema.signals.triggerDate, now),
+          lte(schema.signals.triggerDate!, now),
         ),
       );
 
@@ -419,11 +420,9 @@ export async function registerSignalRoutes(app: FastifyInstance) {
 function buildNotificationTitle(signal: typeof schema.signals.$inferSelect): string {
   const payload = (signal.payload ?? {}) as Record<string, string>;
   switch (signal.signalType) {
-    case 'birthday_today':  return `🎂 It's ${payload.contactName}'s birthday!`;
-    case 'birthday_1day':   return `Tomorrow is ${payload.contactName}'s birthday`;
-    case 'birthday_3day':   return `${payload.contactName}'s birthday is in 3 days`;
-    case 'shared_calendar_event': return `You and ${payload.contactName} have ${payload.eventTitle} coming up`;
-    case 'questionnaire_match':   return `You and someone share the same ${payload.matchType}`;
+    case 'birthday':            return `🎂 It's ${payload.contactName}'s birthday!`;
+    case 'shared_event':        return `You and ${payload.contactName} have ${payload.eventTitle} coming up`;
+    case 'questionnaire_match': return `You and someone share the same ${payload.matchType}`;
     default: return 'Amber has a suggestion for you';
   }
 }
@@ -431,11 +430,9 @@ function buildNotificationTitle(signal: typeof schema.signals.$inferSelect): str
 function buildNotificationBody(signal: typeof schema.signals.$inferSelect): string {
   const payload = (signal.payload ?? {}) as Record<string, string>;
   switch (signal.signalType) {
-    case 'birthday_today':
-    case 'birthday_1day':
-    case 'birthday_3day':
+    case 'birthday':
       return 'Tap to send a message or set a reminder.';
-    case 'shared_calendar_event':
+    case 'shared_event':
       return `${payload.eventTitle} — tap to reach out before it starts.`;
     case 'questionnaire_match':
       return `You both listed ${payload.matchValue} as your ${payload.matchType}.`;
