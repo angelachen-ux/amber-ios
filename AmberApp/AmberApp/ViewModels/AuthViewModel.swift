@@ -12,7 +12,7 @@ import PrivySDK
 @MainActor
 class AuthViewModel: ObservableObject {
     @Published var isAuthenticated: Bool = false
-    @Published var isLoading: Bool = true
+    @Published var isLoading: Bool = false
     @Published var error: String?
     @Published var accessToken: String?
 
@@ -22,14 +22,23 @@ class AuthViewModel: ObservableObject {
 
     private var privy: Privy?
     private var authStateTask: Task<Void, Never>?
+    private var isInitialized = false
 
     init() {
-        let config = PrivyConfig(
-            appId: AppConfig.privyAppId,
-            appClientId: AppConfig.privyAppClientId
-        )
-        privy = PrivySdk.initialize(config: config)
-        observeAuthState()
+        do {
+            let config = PrivyConfig(
+                appId: AppConfig.privyAppId,
+                appClientId: AppConfig.privyAppClientId
+            )
+            privy = PrivySdk.initialize(config: config)
+            isInitialized = true
+            observeAuthState()
+        } catch {
+            // SDK init failure (e.g. invalid bundle ID) — don't show to user on launch
+            print("[Privy] SDK init error: \(error)")
+            isInitialized = false
+            isLoading = false
+        }
     }
 
     deinit {
@@ -59,9 +68,8 @@ class AuthViewModel: ObservableObject {
                     self.isAuthenticated = false
                     self.isLoading = false
                 case .notReady:
-                    self.isLoading = true
+                    break // don't show loading spinner for SDK warmup
                 case .authenticatedUnverified:
-                    // Cached session, no network — treat as authenticated optimistically
                     self.isAuthenticated = true
                     self.isLoading = false
                 @unknown default:
@@ -75,7 +83,10 @@ class AuthViewModel: ObservableObject {
 
     /// Step 1: Send OTP code to email
     func sendEmailCode(to email: String) {
-        guard let privy else { return }
+        guard let privy else {
+            self.error = "Authentication service is not available. Please restart the app."
+            return
+        }
         isLoading = true
         error = nil
         Task {
@@ -85,7 +96,7 @@ class AuthViewModel: ObservableObject {
                 isAwaitingOTP = true
                 isLoading = false
             } catch {
-                self.error = error.localizedDescription
+                self.error = friendlyError(error)
                 isLoading = false
             }
         }
@@ -107,7 +118,7 @@ class AuthViewModel: ObservableObject {
                 pendingEmail = nil
                 isLoading = false
             } catch {
-                self.error = error.localizedDescription
+                self.error = friendlyError(error)
                 isLoading = false
             }
         }
@@ -116,7 +127,10 @@ class AuthViewModel: ObservableObject {
     // MARK: - OAuth Login (Google, Apple)
 
     func loginWithGoogle() {
-        guard let privy else { return }
+        guard let privy else {
+            self.error = "Authentication service is not available. Please restart the app."
+            return
+        }
         isLoading = true
         error = nil
         Task {
@@ -131,14 +145,17 @@ class AuthViewModel: ObservableObject {
                 isAuthenticated = true
                 isLoading = false
             } catch {
-                self.error = error.localizedDescription
+                self.error = friendlyError(error)
                 isLoading = false
             }
         }
     }
 
     func loginWithApple() {
-        guard let privy else { return }
+        guard let privy else {
+            self.error = "Authentication service is not available. Please restart the app."
+            return
+        }
         isLoading = true
         error = nil
         Task {
@@ -153,7 +170,7 @@ class AuthViewModel: ObservableObject {
                 isAuthenticated = true
                 isLoading = false
             } catch {
-                self.error = error.localizedDescription
+                self.error = friendlyError(error)
                 isLoading = false
             }
         }
@@ -175,9 +192,8 @@ class AuthViewModel: ObservableObject {
     // MARK: - Session Check
 
     func checkSession() {
-        // Auth state is observed via authStateStream — this is called on appear
-        // to trigger initial state evaluation
-        guard let privy else {
+        guard let privy, isInitialized else {
+            isAuthenticated = false
             isLoading = false
             return
         }
@@ -198,21 +214,40 @@ class AuthViewModel: ObservableObject {
                 isAuthenticated = false
                 isLoading = false
             case .notReady:
-                break // stream will handle it
+                // Give the stream a moment, then fall through
+                try? await Task.sleep(for: .seconds(2))
+                if isLoading {
+                    isAuthenticated = false
+                    isLoading = false
+                }
             case .authenticatedUnverified:
                 isAuthenticated = true
                 isLoading = false
             @unknown default:
+                isAuthenticated = false
                 isLoading = false
             }
         }
+    }
+
+    // MARK: - Helpers
+
+    private func friendlyError(_ error: Error) -> String {
+        let msg = error.localizedDescription
+        // Filter out raw API error dumps — show something clean
+        if msg.contains("invalid_native_app_id") {
+            return "App configuration error. Please contact support."
+        }
+        if msg.contains("cancelled") || msg.contains("Cancelled") {
+            return "" // user cancelled, don't show error
+        }
+        return msg
     }
 }
 
 // MARK: - App Configuration
 
 enum AppConfig {
-    // TODO: Replace with your Privy Dashboard values
     static let privyAppId = "cmisgt8wr00enjj0dkasj2xsz"
     static let privyAppClientId = "client-WY6TPkpcdSAbJ5eBEM3jw6rkpaR2KycrefbJehufX6yXX"
     static let urlScheme = "amberapp"
