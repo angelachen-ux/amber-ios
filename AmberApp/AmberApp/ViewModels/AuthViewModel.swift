@@ -213,8 +213,8 @@ class AuthViewModel: ObservableObject {
 
 enum AppConfig {
     // TODO: Replace with your Privy Dashboard values
-    static let privyAppId = "INSERT_PRIVY_APP_ID"
-    static let privyAppClientId = "INSERT_PRIVY_APP_CLIENT_ID"
+    static let privyAppId = "cmisgt8wr00enjj0dkasj2xsz"
+    static let privyAppClientId = "client-WY6TPkpcdSAbJ5eBEM3jw6rkpaR2KycrefbJehufX6yXX"
     static let urlScheme = "amberapp"
 
     // Backend
