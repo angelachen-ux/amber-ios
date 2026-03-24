@@ -2,6 +2,7 @@
 // Reads CNContacts, computes relationship scores, feeds SIGNAL-01 (birthday signals)
 
 import Foundation
+import Combine
 import Contacts
 import SwiftData
 
@@ -54,8 +55,7 @@ final class ContactGraphService: ObservableObject {
             CNContactBirthdayKey as CNKeyDescriptor,
         ]
 
-        let request = CNFetchRequest(entityType: CNContact.self)
-        request.keysToFetch = keys
+        let request = CNContactFetchRequest(keysToFetch: keys)
 
         var results: [Contact] = []
         let now = Date()

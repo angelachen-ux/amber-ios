@@ -2,7 +2,7 @@ import { FastifyInstance } from 'fastify';
 import { z } from 'zod';
 import { db, schema } from '../db/client.js';
 import { eq, and } from 'drizzle-orm';
-import { authenticateAuth0, AuthenticatedRequest } from '../auth/middleware.js';
+import { authenticate, AuthenticatedRequest } from '../auth/middleware.js';
 import { sha256Hex } from '../util/crypto.js';
 import { deriveHoroscope } from '../util/horoscope.js';
 
@@ -48,7 +48,7 @@ export async function registerOnboardingRoutes(app: FastifyInstance) {
    * POST /onboarding/start
    * Creates onboarding progress record (or returns existing)
    */
-  app.post('/onboarding/start', { preHandler: authenticateAuth0 }, async (req: AuthenticatedRequest, reply) => {
+  app.post('/onboarding/start', { preHandler: authenticate }, async (req: AuthenticatedRequest, reply) => {
     // Check for existing progress
     const [existing] = await db
       .select()
@@ -75,7 +75,7 @@ export async function registerOnboardingRoutes(app: FastifyInstance) {
    */
   app.put<{ Params: { stepName: string } }>(
     '/onboarding/step/:stepName',
-    { preHandler: authenticateAuth0 },
+    { preHandler: authenticate },
     async (req: AuthenticatedRequest, reply) => {
       const { stepName } = req.params as { stepName: string };
 
@@ -212,7 +212,7 @@ export async function registerOnboardingRoutes(app: FastifyInstance) {
    * POST /onboarding/complete
    * Validates required steps and finalizes onboarding
    */
-  app.post('/onboarding/complete', { preHandler: authenticateAuth0 }, async (req: AuthenticatedRequest, reply) => {
+  app.post('/onboarding/complete', { preHandler: authenticate }, async (req: AuthenticatedRequest, reply) => {
     const [progress] = await db
       .select()
       .from(schema.onboardingProgress)
@@ -263,7 +263,7 @@ export async function registerOnboardingRoutes(app: FastifyInstance) {
    * GET /onboarding/status
    * Returns current onboarding progress and partial profile
    */
-  app.get('/onboarding/status', { preHandler: authenticateAuth0 }, async (req: AuthenticatedRequest) => {
+  app.get('/onboarding/status', { preHandler: authenticate }, async (req: AuthenticatedRequest) => {
     const [progress] = await db
       .select()
       .from(schema.onboardingProgress)

@@ -4,13 +4,12 @@ import SwiftUI
 import SwiftData
 
 struct SuggestionFeedView: View {
-    @Query(
-        filter: #Predicate<Signal> {
-            $0.status == "pending" || $0.status == "sent" || $0.status == "viewed"
-        },
-        sort: \Signal.triggerDate
-    )
-    private var signals: [Signal]
+    @Query(sort: \Signal.triggerDate)
+    private var allSignals: [Signal]
+
+    private var signals: [Signal] {
+        allSignals.filter { ["pending", "sent", "viewed"].contains($0.status) }
+    }
 
     @Environment(\.modelContext) private var context
     @State private var selectedSignal: Signal?

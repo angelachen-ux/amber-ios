@@ -36,7 +36,7 @@ enum APIError: LocalizedError {
 final class APIClient {
     static let shared = APIClient()
 
-    var baseURL: String = "http://localhost:8080"
+    var baseURL: String = AppConfig.apiBaseURL
     var accessToken: String?
 
     private let session: URLSession

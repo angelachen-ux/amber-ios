@@ -16,16 +16,12 @@
 	<string>Amber uses the camera to capture photos for your profile.</string>
 	<key>NSCalendarsUsageDescription</key>
 	<string>Amber integrates with your calendar to suggest interactions.</string>
-	<key>Auth0Domain</key>
-	<string>dev-4prs757badfajpi5.us.auth0.com</string>
-	<key>Auth0ClientId</key>
-	<string>ytP3na2gIO9Wpsc4cEt1klmSbPF4ZAIe</string>
 	<key>CFBundleURLTypes</key>
 	<array>
 		<dict>
 			<key>CFBundleURLSchemes</key>
 			<array>
-				<string>com.Amber.AmberApp</string>
+				<string>amberapp</string>
 			</array>
 		</dict>
 	</array>

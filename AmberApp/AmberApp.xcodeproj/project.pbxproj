@@ -7,7 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		EF4018952F58961500164AC6 /* Auth0 in Frameworks */ = {isa = PBXBuildFile; productRef = EF4018942F58961500164AC6 /* Auth0 */; };
+		EF4018952F58961500164AC6 /* Privy in Frameworks */ = {isa = PBXBuildFile; productRef = EF4018942F58961500164AC6 /* Privy */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
@@ -40,7 +40,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				EF4018952F58961500164AC6 /* Auth0 in Frameworks */,
+				EF4018952F58961500164AC6 /* Privy in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -83,7 +83,7 @@
 			);
 			name = AmberApp;
 			packageProductDependencies = (
-				EF4018942F58961500164AC6 /* Auth0 */,
+				EF4018942F58961500164AC6 /* Privy */,
 			);
 			productName = AmberApp;
 			productReference = 8DC8A4DF2F1C9E3B00B2E249 /* AmberApp.app */;
@@ -114,7 +114,7 @@
 			mainGroup = 8DC8A4D62F1C9E3B00B2E249;
 			minimizedProjectReferenceProxies = 1;
 			packageReferences = (
-				EF4018932F58961500164AC6 /* XCRemoteSwiftPackageReference "Auth0" */,
+				EF4018932F58961500164AC6 /* XCRemoteSwiftPackageReference "privy-ios" */,
 			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = 8DC8A4E02F1C9E3B00B2E249 /* Products */;
@@ -358,21 +358,21 @@
 /* End XCConfigurationList section */
 
 /* Begin XCRemoteSwiftPackageReference section */
-		EF4018932F58961500164AC6 /* XCRemoteSwiftPackageReference "Auth0" */ = {
+		EF4018932F58961500164AC6 /* XCRemoteSwiftPackageReference "privy-ios" */ = {
 			isa = XCRemoteSwiftPackageReference;
-			repositoryURL = "https://github.com/auth0/Auth0.swift";
+			repositoryURL = "https://github.com/privy-io/privy-ios";
 			requirement = {
 				kind = upToNextMajorVersion;
-				minimumVersion = 2.17.1;
+				minimumVersion = 2.0.0;
 			};
 		};
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
-		EF4018942F58961500164AC6 /* Auth0 */ = {
+		EF4018942F58961500164AC6 /* Privy */ = {
 			isa = XCSwiftPackageProductDependency;
-			package = EF4018932F58961500164AC6 /* XCRemoteSwiftPackageReference "Auth0" */;
-			productName = Auth0;
+			package = EF4018932F58961500164AC6 /* XCRemoteSwiftPackageReference "privy-ios" */;
+			productName = Privy;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};

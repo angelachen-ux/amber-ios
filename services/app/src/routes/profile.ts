@@ -2,7 +2,7 @@ import { FastifyInstance } from 'fastify';
 import { z } from 'zod';
 import { db, schema } from '../db/client.js';
 import { eq } from 'drizzle-orm';
-import { authenticateAuth0, AuthenticatedRequest } from '../auth/middleware.js';
+import { authenticate, AuthenticatedRequest } from '../auth/middleware.js';
 import { sha256Hex } from '../util/crypto.js';
 
 const IMMUTABLE_FIELDS = ['birthday', 'almaMater', 'hometown', 'birthdayTime', 'birthLocation'];
@@ -20,7 +20,7 @@ export async function registerProfileRoutes(app: FastifyInstance) {
    * GET /profile
    * Returns authenticated user's full profile + personality profiles
    */
-  app.get('/profile', { preHandler: authenticateAuth0 }, async (req: AuthenticatedRequest, reply) => {
+  app.get('/profile', { preHandler: authenticate }, async (req: AuthenticatedRequest, reply) => {
     const [profile] = await db
       .select()
       .from(schema.userProfiles)
@@ -44,7 +44,7 @@ export async function registerProfileRoutes(app: FastifyInstance) {
    * GET /profile/personality
    * Returns all personality profiles for authenticated user
    */
-  app.get('/profile/personality', { preHandler: authenticateAuth0 }, async (req: AuthenticatedRequest) => {
+  app.get('/profile/personality', { preHandler: authenticate }, async (req: AuthenticatedRequest) => {
     return await db
       .select()
       .from(schema.personalityProfiles)
@@ -56,7 +56,7 @@ export async function registerProfileRoutes(app: FastifyInstance) {
    * PUT /profile
    * Update editable profile fields only
    */
-  app.put('/profile', { preHandler: authenticateAuth0 }, async (req: AuthenticatedRequest, reply) => {
+  app.put('/profile', { preHandler: authenticate }, async (req: AuthenticatedRequest, reply) => {
     // Reject immutable fields
     const rawBody = req.body as Record<string, unknown>;
     const attempted = IMMUTABLE_FIELDS.filter((f) => f in rawBody);
@@ -107,7 +107,7 @@ export async function registerProfileRoutes(app: FastifyInstance) {
    */
   app.get<{ Params: { userId: string } }>(
     '/profile/:userId',
-    { preHandler: authenticateAuth0 },
+    { preHandler: authenticate },
     async (req: AuthenticatedRequest, reply) => {
       const targetUserId = Number((req.params as { userId: string }).userId);
 

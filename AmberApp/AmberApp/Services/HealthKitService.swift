@@ -3,6 +3,7 @@
 // Sprint 1: ingest only — data not yet used for suggestions.
 
 import Foundation
+import Combine
 import HealthKit
 import SwiftData
 

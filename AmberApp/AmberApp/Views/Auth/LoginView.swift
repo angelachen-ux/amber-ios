@@ -9,6 +9,8 @@ import SwiftUI
 
 struct LoginView: View {
     @EnvironmentObject var authViewModel: AuthViewModel
+    @State private var email = ""
+    @State private var otpCode = ""
 
     var body: some View {
         ZStack {
@@ -43,7 +45,7 @@ struct LoginView: View {
 
                 // Sign in section
                 VStack(spacing: 20) {
-                    Text("Sign in to Amber")
+                    Text(authViewModel.isAwaitingOTP ? "Enter Code" : "Sign in to Amber")
                         .font(.amberHeadline)
                         .foregroundColor(.white)
 
@@ -56,58 +58,10 @@ struct LoginView: View {
                             .padding(.horizontal, 24)
                     }
 
-                    VStack(spacing: 12) {
-                        // Continue with Google
-                        Button(action: { authViewModel.loginWithGoogle() }) {
-                            HStack(spacing: 12) {
-                                Image(systemName: "g.circle.fill")
-                                    .font(.system(size: 20))
-                                Text("Continue with Google")
-                                    .font(.system(size: 17, weight: .semibold))
-                            }
-                            .foregroundColor(.white)
-                            .frame(maxWidth: .infinity)
-                            .frame(height: 54)
-                            .background(
-                                RoundedRectangle(cornerRadius: 14)
-                                    .fill(.ultraThinMaterial)
-                                    .overlay(
-                                        RoundedRectangle(cornerRadius: 14)
-                                            .stroke(Color.white.opacity(0.15), lineWidth: 1)
-                                    )
-                            )
-                        }
-                        .disabled(authViewModel.isLoading)
-
-                        // Continue with Email
-                        Button(action: { authViewModel.login() }) {
-                            HStack(spacing: 12) {
-                                Image(systemName: "envelope.fill")
-                                    .font(.system(size: 20))
-                                Text("Continue with Email")
-                                    .font(.system(size: 17, weight: .semibold))
-                            }
-                            .foregroundColor(.white)
-                            .frame(maxWidth: .infinity)
-                            .frame(height: 54)
-                            .background(
-                                RoundedRectangle(cornerRadius: 14)
-                                    .fill(Color.amberBlue)
-                                    .overlay(
-                                        RoundedRectangle(cornerRadius: 14)
-                                            .stroke(Color.white.opacity(0.15), lineWidth: 1)
-                                    )
-                            )
-                        }
-                        .disabled(authViewModel.isLoading)
-                    }
-                    .padding(.horizontal, 24)
-
-                    // Loading indicator
-                    if authViewModel.isLoading {
-                        ProgressView()
-                            .tint(.amberBlue)
-                            .padding(.top, 8)
+                    if authViewModel.isAwaitingOTP {
+                        otpEntryView
+                    } else {
+                        loginButtonsView
                     }
                 }
 
@@ -123,6 +77,159 @@ struct LoginView: View {
             }
         }
         .preferredColorScheme(.dark)
+    }
+
+    // MARK: - Login Buttons
+
+    private var loginButtonsView: some View {
+        VStack(spacing: 12) {
+            // Email input + send code
+            VStack(spacing: 8) {
+                TextField("Email address", text: $email)
+                    .textContentType(.emailAddress)
+                    .keyboardType(.emailAddress)
+                    .autocapitalization(.none)
+                    .disableAutocorrection(true)
+                    .padding(.horizontal, 16)
+                    .frame(height: 54)
+                    .background(
+                        RoundedRectangle(cornerRadius: 14)
+                            .fill(.ultraThinMaterial)
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 14)
+                                    .stroke(Color.white.opacity(0.15), lineWidth: 1)
+                            )
+                    )
+                    .foregroundColor(.white)
+
+                Button(action: { authViewModel.sendEmailCode(to: email) }) {
+                    Text("Continue with Email")
+                        .font(.system(size: 17, weight: .semibold))
+                        .foregroundColor(.white)
+                        .frame(maxWidth: .infinity)
+                        .frame(height: 54)
+                        .background(
+                            RoundedRectangle(cornerRadius: 14)
+                                .fill(Color.amberBlue)
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: 14)
+                                        .stroke(Color.white.opacity(0.15), lineWidth: 1)
+                                )
+                        )
+                }
+                .disabled(email.isEmpty || authViewModel.isLoading)
+            }
+
+            // Divider
+            HStack {
+                Rectangle().fill(Color.white.opacity(0.15)).frame(height: 1)
+                Text("or").font(.amberCaption).foregroundColor(.gray)
+                Rectangle().fill(Color.white.opacity(0.15)).frame(height: 1)
+            }
+
+            // Continue with Google
+            Button(action: { authViewModel.loginWithGoogle() }) {
+                HStack(spacing: 12) {
+                    Image(systemName: "g.circle.fill")
+                        .font(.system(size: 20))
+                    Text("Continue with Google")
+                        .font(.system(size: 17, weight: .semibold))
+                }
+                .foregroundColor(.white)
+                .frame(maxWidth: .infinity)
+                .frame(height: 54)
+                .background(
+                    RoundedRectangle(cornerRadius: 14)
+                        .fill(.ultraThinMaterial)
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 14)
+                                .stroke(Color.white.opacity(0.15), lineWidth: 1)
+                        )
+                )
+            }
+            .disabled(authViewModel.isLoading)
+
+            // Continue with Apple
+            Button(action: { authViewModel.loginWithApple() }) {
+                HStack(spacing: 12) {
+                    Image(systemName: "apple.logo")
+                        .font(.system(size: 20))
+                    Text("Continue with Apple")
+                        .font(.system(size: 17, weight: .semibold))
+                }
+                .foregroundColor(.white)
+                .frame(maxWidth: .infinity)
+                .frame(height: 54)
+                .background(
+                    RoundedRectangle(cornerRadius: 14)
+                        .fill(.ultraThinMaterial)
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 14)
+                                .stroke(Color.white.opacity(0.15), lineWidth: 1)
+                        )
+                )
+            }
+            .disabled(authViewModel.isLoading)
+        }
+        .padding(.horizontal, 24)
+    }
+
+    // MARK: - OTP Entry
+
+    private var otpEntryView: some View {
+        VStack(spacing: 12) {
+            if let email = authViewModel.pendingEmail {
+                Text("Code sent to \(email)")
+                    .font(.amberCaption)
+                    .foregroundColor(.gray)
+            }
+
+            TextField("Enter 6-digit code", text: $otpCode)
+                .textContentType(.oneTimeCode)
+                .keyboardType(.numberPad)
+                .multilineTextAlignment(.center)
+                .font(.system(size: 24, weight: .semibold, design: .monospaced))
+                .padding(.horizontal, 16)
+                .frame(height: 54)
+                .background(
+                    RoundedRectangle(cornerRadius: 14)
+                        .fill(.ultraThinMaterial)
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 14)
+                                .stroke(Color.white.opacity(0.15), lineWidth: 1)
+                        )
+                )
+                .foregroundColor(.white)
+
+            Button(action: { authViewModel.verifyEmailCode(otpCode) }) {
+                Text("Verify")
+                    .font(.system(size: 17, weight: .semibold))
+                    .foregroundColor(.white)
+                    .frame(maxWidth: .infinity)
+                    .frame(height: 54)
+                    .background(
+                        RoundedRectangle(cornerRadius: 14)
+                            .fill(Color.amberBlue)
+                    )
+            }
+            .disabled(otpCode.count < 6 || authViewModel.isLoading)
+
+            Button("Use a different method") {
+                authViewModel.isAwaitingOTP = false
+                authViewModel.pendingEmail = nil
+                otpCode = ""
+            }
+            .font(.amberCaption)
+            .foregroundColor(.amberBlue)
+
+            // Loading indicator
+            if authViewModel.isLoading {
+                ProgressView()
+                    .tint(.amberBlue)
+                    .padding(.top, 8)
+            }
+        }
+        .padding(.horizontal, 24)
     }
 }
 

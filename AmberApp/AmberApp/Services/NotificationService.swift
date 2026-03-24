@@ -1,6 +1,7 @@
 // SIGNAL-02: Push Notification Delivery — APNs registration + local scheduling
 
 import Foundation
+import Combine
 import UserNotifications
 import SwiftData
 

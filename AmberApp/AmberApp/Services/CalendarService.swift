@@ -1,6 +1,7 @@
 // DATA-03: Calendar (EventKit) Integration — SIGNAL-04 shared event detection
 
 import Foundation
+import Combine
 import EventKit
 import SwiftData
 
@@ -54,10 +55,9 @@ final class CalendarService: ObservableObject {
             guard let attendees = event.attendees, attendees.count > 1 else { continue }
             var matchedIds: [String] = []
             for attendee in attendees {
-                if let url = attendee.url?.absoluteString {
-                    let email = url.replacingOccurrences(of: "mailto:", with: "").lowercased()
-                    if let id = emailToContactId[email] { matchedIds.append(id) }
-                }
+                let email = attendee.url.absoluteString
+                    .replacingOccurrences(of: "mailto:", with: "").lowercased()
+                if let id = emailToContactId[email] { matchedIds.append(id) }
             }
             if matchedIds.isEmpty { continue }
             results.append(CalendarEventPayload(
