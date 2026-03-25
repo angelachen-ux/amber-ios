@@ -15,7 +15,7 @@ struct CustomTabBar: View {
     var body: some View {
         VStack(spacing: 0) {
             // Search bar extension - only shows when on Contacts tab
-            if selectedTab == 0 {
+            if selectedTab == 1 {
                 LiquidGlassSearchBar(searchText: $searchText)
                     .padding(.horizontal, 20)
                     .padding(.bottom, 12)
@@ -24,10 +24,10 @@ struct CustomTabBar: View {
 
             // iOS-style liquid glass tab bar
             HStack(spacing: 0) {
-                // Contacts
+                // Messages
                 TabBarButton(
-                    icon: "person.2.fill",
-                    label: "Contacts",
+                    icon: "bubble.left.and.bubble.right.fill",
+                    label: "Messages",
                     isSelected: selectedTab == 0,
                     namespace: animation
                 ) {
@@ -36,10 +36,10 @@ struct CustomTabBar: View {
                     }
                 }
 
-                // Network
+                // Contacts
                 TabBarButton(
-                    icon: "sparkles",
-                    label: "Network",
+                    icon: "person.2.fill",
+                    label: "Contacts",
                     isSelected: selectedTab == 1,
                     namespace: animation
                 ) {
@@ -48,10 +48,10 @@ struct CustomTabBar: View {
                     }
                 }
 
-                // Profile
+                // Network
                 TabBarButton(
-                    icon: "person.circle.fill",
-                    label: "Profile",
+                    icon: "sparkles",
+                    label: "Network",
                     isSelected: selectedTab == 2,
                     namespace: animation
                 ) {
@@ -59,8 +59,32 @@ struct CustomTabBar: View {
                         selectedTab = 2
                     }
                 }
+
+                // Profile
+                TabBarButton(
+                    icon: "person.circle.fill",
+                    label: "Profile",
+                    isSelected: selectedTab == 3,
+                    namespace: animation
+                ) {
+                    withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+                        selectedTab = 3
+                    }
+                }
+
+                // Feed
+                TabBarButton(
+                    icon: "chart.line.uptrend.xyaxis",
+                    label: "Feed",
+                    isSelected: selectedTab == 4,
+                    namespace: animation
+                ) {
+                    withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+                        selectedTab = 4
+                    }
+                }
             }
-            .padding(.horizontal, 8)
+            .padding(.horizontal, 4)
             .padding(.vertical, 8)
             .background(
                 .ultraThinMaterial,
@@ -89,20 +113,20 @@ struct TabBarButton: View {
         Button(action: action) {
             VStack(spacing: 4) {
                 Image(systemName: icon)
-                    .font(.system(size: 24, weight: isSelected ? .semibold : .regular))
+                    .font(.system(size: 20, weight: isSelected ? .semibold : .regular))
                     .foregroundStyle(isSelected ? Color.amberBlue : Color.primary.opacity(0.5))
-                    .frame(height: 28)
+                    .frame(height: 24)
 
                 Text(label)
-                    .font(.system(size: 11, weight: isSelected ? .semibold : .regular))
+                    .font(.system(size: 10, weight: isSelected ? .semibold : .regular))
                     .foregroundStyle(isSelected ? Color.amberBlue : Color.primary.opacity(0.5))
             }
             .frame(maxWidth: .infinity)
-            .padding(.vertical, 8)
-            .padding(.horizontal, 12)
+            .padding(.vertical, 6)
+            .padding(.horizontal, 4)
             .background {
                 if isSelected {
-                    RoundedRectangle(cornerRadius: 28, style: .continuous)
+                    RoundedRectangle(cornerRadius: 24, style: .continuous)
                         .fill(Color.amberBlue.opacity(0.12))
                         .matchedGeometryEffect(id: "TAB_BACKGROUND", in: namespace)
                 }

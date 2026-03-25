@@ -38,12 +38,19 @@ class AuthViewModel: ObservableObject {
 
     // MARK: - Dev Bypass (DEBUG only)
 
+    private var isDevBypassed = false
+
     #if DEBUG
     /// Skip auth entirely for development — lets you test onboarding + full app
     func devBypassLogin() {
+        // Cancel the auth state observer so Privy can't override us
+        authStateTask?.cancel()
+        authStateTask = nil
+        isDevBypassed = true
         accessToken = "dev-bypass-token"
         APIClient.shared.accessToken = "dev-bypass-token"
         isAuthenticated = true
+        isLoading = false
         error = nil
     }
     #endif
@@ -54,6 +61,7 @@ class AuthViewModel: ObservableObject {
         guard let privy else { return }
         authStateTask = Task {
             for await authState in privy.authStateStream {
+                guard !isDevBypassed else { return }
                 switch authState {
                 case .authenticated(let user):
                     do {

@@ -38,7 +38,11 @@ struct AmberApp: App {
                 }
             }
             .onAppear {
+                #if DEBUG && targetEnvironment(simulator)
+                authViewModel.devBypassLogin()
+                #else
                 authViewModel.checkSession()
+                #endif
             }
         }
     }
@@ -46,7 +50,7 @@ struct AmberApp: App {
 
 struct ContentView: View {
     @EnvironmentObject var authViewModel: AuthViewModel
-    @State private var selectedTab = 1 // Start on Network (center)
+    @State private var selectedTab = 2 // Start on Network (center)
     @State private var searchText = ""
     @State private var networkInputText = ""
     @FocusState private var isNetworkInputFocused: Bool
@@ -55,12 +59,19 @@ struct ContentView: View {
         ZStack {
             // Content views
             Group {
-                if selectedTab == 0 {
+                switch selectedTab {
+                case 0:
+                    MessagesView()
+                case 1:
                     ConnectionsView(searchText: $searchText)
-                } else if selectedTab == 1 {
+                case 2:
                     DiscoverView()
-                } else {
+                case 3:
                     AmberIDView()
+                case 4:
+                    FeedView()
+                default:
+                    DiscoverView()
                 }
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -68,7 +79,7 @@ struct ContentView: View {
             // Network input bar - only shows when on Network tab
             VStack {
                 Spacer()
-                if selectedTab == 1 {
+                if selectedTab == 2 {
                     NetworkInputBar(inputText: $networkInputText, isInputFocused: $isNetworkInputFocused)
                         .padding(.bottom, 12)
                         .transition(.move(edge: .bottom).combined(with: .opacity))
