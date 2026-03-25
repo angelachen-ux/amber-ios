@@ -87,6 +87,18 @@ struct LoginView: View {
 
                 Spacer()
 
+                // Dev bypass (DEBUG only)
+                #if DEBUG
+                if !authViewModel.isAwaitingOTP && !showEmailFlow {
+                    Button(action: { authViewModel.devBypassLogin() }) {
+                        Text("Skip Login (Dev Mode)")
+                            .font(.system(size: 14, weight: .medium))
+                            .foregroundColor(.amberBlue.opacity(0.6))
+                    }
+                    .padding(.bottom, 8)
+                }
+                #endif
+
                 // Footer
                 Text("By continuing, you agree to Amber's Terms of Service and Privacy Policy.")
                     .font(.amberCaption)

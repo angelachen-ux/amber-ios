@@ -22,28 +22,31 @@ class AuthViewModel: ObservableObject {
 
     private var privy: Privy?
     private var authStateTask: Task<Void, Never>?
-    private var isInitialized = false
 
     init() {
-        do {
-            let config = PrivyConfig(
-                appId: AppConfig.privyAppId,
-                appClientId: AppConfig.privyAppClientId
-            )
-            privy = PrivySdk.initialize(config: config)
-            isInitialized = true
-            observeAuthState()
-        } catch {
-            // SDK init failure (e.g. invalid bundle ID) — don't show to user on launch
-            print("[Privy] SDK init error: \(error)")
-            isInitialized = false
-            isLoading = false
-        }
+        let config = PrivyConfig(
+            appId: AppConfig.privyAppId,
+            appClientId: AppConfig.privyAppClientId
+        )
+        privy = PrivySdk.initialize(config: config)
+        observeAuthState()
     }
 
     deinit {
         authStateTask?.cancel()
     }
+
+    // MARK: - Dev Bypass (DEBUG only)
+
+    #if DEBUG
+    /// Skip auth entirely for development — lets you test onboarding + full app
+    func devBypassLogin() {
+        accessToken = "dev-bypass-token"
+        APIClient.shared.accessToken = "dev-bypass-token"
+        isAuthenticated = true
+        error = nil
+    }
+    #endif
 
     // MARK: - Auth State Observation
 
@@ -68,7 +71,7 @@ class AuthViewModel: ObservableObject {
                     self.isAuthenticated = false
                     self.isLoading = false
                 case .notReady:
-                    break // don't show loading spinner for SDK warmup
+                    break // don't block UI on SDK warmup
                 case .authenticatedUnverified:
                     self.isAuthenticated = true
                     self.isLoading = false
@@ -84,7 +87,7 @@ class AuthViewModel: ObservableObject {
     /// Step 1: Send OTP code to email
     func sendEmailCode(to email: String) {
         guard let privy else {
-            self.error = "Authentication service is not available. Please restart the app."
+            self.error = "Authentication service unavailable. Please restart the app."
             return
         }
         isLoading = true
@@ -128,7 +131,7 @@ class AuthViewModel: ObservableObject {
 
     func loginWithGoogle() {
         guard let privy else {
-            self.error = "Authentication service is not available. Please restart the app."
+            self.error = "Authentication service unavailable. Please restart the app."
             return
         }
         isLoading = true
@@ -153,7 +156,7 @@ class AuthViewModel: ObservableObject {
 
     func loginWithApple() {
         guard let privy else {
-            self.error = "Authentication service is not available. Please restart the app."
+            self.error = "Authentication service unavailable. Please restart the app."
             return
         }
         isLoading = true
@@ -192,7 +195,7 @@ class AuthViewModel: ObservableObject {
     // MARK: - Session Check
 
     func checkSession() {
-        guard let privy, isInitialized else {
+        guard let privy else {
             isAuthenticated = false
             isLoading = false
             return
@@ -234,12 +237,11 @@ class AuthViewModel: ObservableObject {
 
     private func friendlyError(_ error: Error) -> String {
         let msg = error.localizedDescription
-        // Filter out raw API error dumps — show something clean
         if msg.contains("invalid_native_app_id") {
-            return "App configuration error. Please contact support."
+            return "App not registered with auth provider. Use \"Skip Login\" below to continue in dev mode."
         }
-        if msg.contains("cancelled") || msg.contains("Cancelled") {
-            return "" // user cancelled, don't show error
+        if msg.lowercased().contains("cancel") {
+            return "" // user cancelled — no error
         }
         return msg
     }
