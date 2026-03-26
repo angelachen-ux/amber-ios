@@ -2,8 +2,9 @@
 //  ContactsView.swift
 //  Amber
 //
-//  Premium contacts list with happenstance reconnect algorithm.
-//  Apple Contacts meets Clay.earth. Dark mode only.
+//  Premium contacts list with 2-tier search:
+//  Tier 1: Local Apple Contacts (instant)
+//  Tier 2: Exa.ai people discovery (auto-search)
 //
 
 import SwiftUI
@@ -59,6 +60,7 @@ struct ContactsView: View {
     @State private var searchText: String = ""
     @State private var isSearchFocused: Bool = false
     @State private var showAddContact: Bool = false
+    @StateObject private var exaSearch = ExaSearchService()
 
     private let reconnectPeople: [ReconnectPerson] = [
         ReconnectPerson(name: "Dev", context: "14 days", ringColor: .healthPhysical),
@@ -109,15 +111,35 @@ struct ContactsView: View {
                             .padding(.top, 8)
                             .padding(.bottom, 12)
 
-                        // Happenstance reconnect section
+                        // Reconnect section (hidden when searching)
                         if searchText.isEmpty {
                             reconnectSection
                                 .padding(.bottom, 20)
                                 .transition(.opacity.combined(with: .move(edge: .top)))
                         }
 
-                        // Contacts list
-                        contactsList
+                        // Tier 1: Local contacts
+                        if !filteredContacts.isEmpty {
+                            if !searchText.isEmpty {
+                                HStack(spacing: 6) {
+                                    Image(systemName: "person.crop.circle")
+                                        .foregroundStyle(Color.amberSecondaryText)
+                                    Text("YOUR CONTACTS")
+                                }
+                                .amberSectionHeader()
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                                .padding(.horizontal, 20)
+                                .padding(.bottom, 8)
+                            }
+
+                            contactsList
+                        }
+
+                        // Tier 2: Exa people discovery
+                        if !searchText.isEmpty {
+                            exaResultsSection
+                                .padding(.top, 16)
+                        }
                     }
                     .padding(.bottom, 120)
                 }
@@ -147,6 +169,45 @@ struct ContactsView: View {
         }
         .preferredColorScheme(.dark)
         .animation(.spring(response: 0.35, dampingFraction: 0.75), value: searchText)
+        .onChange(of: searchText) { _, newValue in
+            exaSearch.search(query: newValue)
+        }
+    }
+
+    // MARK: - Exa Discovery Results
+
+    private var exaResultsSection: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            // Header
+            HStack(spacing: 6) {
+                Image(systemName: "globe")
+                    .foregroundStyle(Color.amberWarm)
+                Text("DISCOVER PEOPLE")
+                if exaSearch.isSearching {
+                    ProgressView()
+                        .scaleEffect(0.6)
+                        .tint(.amberWarm)
+                }
+            }
+            .amberSectionHeader()
+            .padding(.horizontal, 20)
+
+            if let error = exaSearch.error {
+                Text(error)
+                    .font(.amberCaption)
+                    .foregroundStyle(Color.amberTertiaryText)
+                    .padding(.horizontal, 20)
+            } else if exaSearch.results.isEmpty && !exaSearch.isSearching {
+                Text("Type to discover people beyond your contacts")
+                    .font(.amberCaption)
+                    .foregroundStyle(Color.amberTertiaryText)
+                    .padding(.horizontal, 20)
+            } else {
+                ForEach(exaSearch.results) { person in
+                    ExaPersonRow(person: person)
+                }
+            }
+        }
     }
 
     // MARK: - Search Bar
@@ -597,6 +658,84 @@ struct ContactDetailCard: View {
             }
             .amberCardStyle()
         }
+    }
+}
+
+// MARK: - Exa Person Row
+
+private struct ExaPersonRow: View {
+    let person: ExaPerson
+
+    private var sourceIcon: String {
+        switch person.source {
+        case "linkedin": return "link.circle.fill"
+        case "twitter": return "at.circle.fill"
+        default: return "globe"
+        }
+    }
+
+    private var sourceColor: Color {
+        switch person.source {
+        case "linkedin": return .healthSocial
+        case "twitter": return .amberText
+        default: return .amberSecondaryText
+        }
+    }
+
+    var body: some View {
+        HStack(spacing: 14) {
+            // Avatar with globe indicator
+            ZStack(alignment: .bottomTrailing) {
+                Circle()
+                    .fill(Color.amberWarm.opacity(0.1))
+                    .frame(width: 40, height: 40)
+
+                Text(String(person.name.prefix(1)).uppercased())
+                    .font(.system(size: 14, weight: .semibold))
+                    .foregroundStyle(Color.amberWarm)
+                    .frame(width: 40, height: 40)
+
+                // Source badge
+                Image(systemName: sourceIcon)
+                    .font(.system(size: 12))
+                    .foregroundStyle(sourceColor)
+                    .background(Color.amberBackground, in: Circle())
+                    .offset(x: 3, y: 3)
+            }
+
+            VStack(alignment: .leading, spacing: 3) {
+                Text(person.name)
+                    .font(.amberBody)
+                    .foregroundStyle(Color.amberText)
+                    .lineLimit(1)
+
+                if !person.title.isEmpty {
+                    Text(person.title)
+                        .font(.amberCaption)
+                        .foregroundStyle(Color.amberSecondaryText)
+                        .lineLimit(1)
+                } else if !person.snippet.isEmpty {
+                    Text(person.snippet)
+                        .font(.amberCaption)
+                        .foregroundStyle(Color.amberTertiaryText)
+                        .lineLimit(1)
+                }
+            }
+
+            Spacer()
+
+            // Add to contacts button
+            Button {
+                // TODO: Add to Amber contacts
+            } label: {
+                Image(systemName: "person.badge.plus")
+                    .font(.system(size: 15))
+                    .foregroundStyle(Color.amberWarm)
+            }
+        }
+        .padding(.horizontal, 20)
+        .padding(.vertical, 10)
+        .contentShape(Rectangle())
     }
 }
 
