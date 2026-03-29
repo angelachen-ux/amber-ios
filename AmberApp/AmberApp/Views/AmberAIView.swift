@@ -71,22 +71,28 @@ struct AmberAIView: View {
 
     var body: some View {
         NavigationStack {
-            ScrollView(.vertical, showsIndicators: false) {
-                VStack(spacing: 0) {
-                    // Network visualization
-                    networkVisualization
-                        .frame(height: UIScreen.main.bounds.height * 0.45)
+            ZStack(alignment: .bottom) {
+                // Scrollable content
+                ScrollView(.vertical, showsIndicators: false) {
+                    VStack(spacing: 0) {
+                        // Network visualization
+                        networkVisualization
+                            .frame(height: UIScreen.main.bounds.height * 0.45)
 
-                    // Suggestion chips
-                    suggestionChips
-                        .padding(.top, 12)
+                        // Suggestion chips
+                        suggestionChips
+                            .padding(.top, 12)
 
-                    // Input bar
+                        Spacer(minLength: 160)
+                    }
+                }
+
+                // Input bar pinned to bottom
+                VStack {
+                    Spacer()
                     NetworkInputBar(inputText: $queryText, isInputFocused: $isInputFocused)
                         .padding(.horizontal, 20)
-                        .padding(.top, 24)
-
-                    Spacer(minLength: 120)
+                        .padding(.bottom, 80)
                 }
             }
             .background(Color.black.ignoresSafeArea())
@@ -143,7 +149,7 @@ struct AmberAIView: View {
 
                     VStack(spacing: 4) {
                         Circle()
-                            .fill(Color.amberSecondaryText)
+                            .fill(node.color)
                             .frame(width: 16, height: 16)
 
                         Text(node.name)

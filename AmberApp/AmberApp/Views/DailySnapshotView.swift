@@ -34,6 +34,11 @@ private struct ScheduleEvent: Identifiable {
     let dotColor: Color
 }
 
+private struct RecentLocation: Identifiable {
+    let id = UUID()
+    let name: String
+}
+
 // MARK: - Daily Snapshot View
 
 struct DailySnapshotView: View {
@@ -65,6 +70,12 @@ struct DailySnapshotView: View {
         ScheduleEvent(time: "5:00 PM",  title: "Product sync with Victor",    subtitle: nil,                  dotColor: .amberPrimary),
     ]
 
+    private let recentLocations: [RecentLocation] = [
+        RecentLocation(name: "USC Campus"),
+        RecentLocation(name: "Sweetgreen"),
+        RecentLocation(name: "Home"),
+    ]
+
     private var greeting: String {
         let hour = Calendar.current.component(.hour, from: Date())
         switch hour {
@@ -88,14 +99,17 @@ struct DailySnapshotView: View {
                 // Header
                 headerSection
 
-                // Body metrics
-                bodySection
+                // Health metrics
+                healthSection
 
-                // People
-                peopleSection
+                // Relationships
+                relationshipsSection
 
-                // Schedule
-                scheduleSection
+                // Location
+                locationSection
+
+                // Timeline
+                timelineSection
             }
             .padding(.top, 16)
             .padding(.bottom, 120)
@@ -119,11 +133,11 @@ struct DailySnapshotView: View {
         .padding(.horizontal, 20)
     }
 
-    // MARK: - Body Section
+    // MARK: - Health Section
 
-    private var bodySection: some View {
+    private var healthSection: some View {
         VStack(alignment: .leading, spacing: 14) {
-            Text("Body")
+            Text("Health")
                 .amberSectionHeader()
                 .padding(.horizontal, 20)
 
@@ -147,7 +161,7 @@ struct DailySnapshotView: View {
         VStack(spacing: 8) {
             Image(systemName: metric.icon)
                 .font(.system(size: 16, weight: .medium))
-                .foregroundStyle(Color.amberSecondaryText)
+                .foregroundStyle(metric.color)
 
             Text(metric.value)
                 .font(.amberTitle3)
@@ -166,11 +180,11 @@ struct DailySnapshotView: View {
         .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
     }
 
-    // MARK: - People Section
+    // MARK: - Relationships Section
 
-    private var peopleSection: some View {
+    private var relationshipsSection: some View {
         VStack(alignment: .leading, spacing: 14) {
-            Text("People")
+            Text("Relationships")
                 .amberSectionHeader()
                 .padding(.horizontal, 20)
 
@@ -218,17 +232,50 @@ struct DailySnapshotView: View {
         .liquidGlassCard(cornerRadius: 12)
     }
 
-    // MARK: - Schedule Section
+    // MARK: - Location Section
 
-    private var scheduleSection: some View {
+    private var locationSection: some View {
         VStack(alignment: .leading, spacing: 14) {
-            Text("Schedule")
+            Text("Location")
                 .amberSectionHeader()
                 .padding(.horizontal, 20)
 
-            VStack(spacing: 0) {
-                ForEach(Array(schedule.enumerated()), id: \.element.id) { index, event in
-                    scheduleRow(event: event, isLast: index == schedule.count - 1)
+            VStack(alignment: .leading, spacing: 12) {
+                // Current location
+                HStack(spacing: 10) {
+                    Image(systemName: "mappin.and.ellipse")
+                        .font(.system(size: 18, weight: .medium))
+                        .foregroundStyle(Color.amberWarm)
+
+                    VStack(alignment: .leading, spacing: 2) {
+                        Text("Los Angeles, CA")
+                            .font(.amberBody)
+                            .foregroundStyle(Color.amberText)
+
+                        Text("Since 9:42 AM")
+                            .font(.amberCaption)
+                            .foregroundStyle(Color.amberSecondaryText)
+                    }
+
+                    Spacer()
+                }
+
+                // Recent locations chips
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: 8) {
+                        ForEach(recentLocations) { location in
+                            HStack(spacing: 4) {
+                                Image(systemName: "mappin")
+                                    .font(.system(size: 10, weight: .medium))
+                                Text(location.name)
+                                    .font(.amberCaption)
+                            }
+                            .foregroundStyle(Color.amberSecondaryText)
+                            .padding(.horizontal, 10)
+                            .padding(.vertical, 6)
+                            .background(.regularMaterial, in: Capsule())
+                        }
+                    }
                 }
             }
             .padding(16)
@@ -237,7 +284,24 @@ struct DailySnapshotView: View {
         }
     }
 
-    private func scheduleRow(event: ScheduleEvent, isLast: Bool) -> some View {
+    // MARK: - Timeline Section
+
+    private var timelineSection: some View {
+        VStack(alignment: .leading, spacing: 14) {
+            Text("Timeline")
+                .amberSectionHeader()
+                .padding(.horizontal, 20)
+
+            VStack(spacing: 0) {
+                ForEach(Array(schedule.enumerated()), id: \.element.id) { index, event in
+                    timelineRow(event: event, isLast: index == schedule.count - 1)
+                }
+            }
+            .padding(.horizontal, 16)
+        }
+    }
+
+    private func timelineRow(event: ScheduleEvent, isLast: Bool) -> some View {
         HStack(alignment: .top, spacing: 12) {
             // Time
             Text(event.time)
@@ -245,11 +309,17 @@ struct DailySnapshotView: View {
                 .foregroundStyle(Color.amberSecondaryText)
                 .frame(width: 64, alignment: .trailing)
 
-            // Dot
-            Circle()
-                .fill(Color.amberSecondaryText)
-                .frame(width: 6, height: 6)
-                .padding(.top, 5)
+            // Dot + vertical line
+            VStack(spacing: 0) {
+                Circle()
+                    .fill(event.dotColor)
+                    .frame(width: 8, height: 8)
+
+                // Continuous vertical line — never ends, suggesting infinite timeline
+                Rectangle()
+                    .fill(Color.amberSecondaryText.opacity(0.3))
+                    .frame(width: 1)
+            }
 
             // Content
             VStack(alignment: .leading, spacing: 2) {

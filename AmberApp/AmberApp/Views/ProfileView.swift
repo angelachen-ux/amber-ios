@@ -7,12 +7,31 @@
 
 import SwiftUI
 
+// MARK: - Todo Item Model
+
+struct TodoItem: Identifiable {
+    let id = UUID()
+    let title: String
+    let context: String
+    let linkedInitials: String?
+    var isCompleted: Bool
+}
+
 // MARK: - Profile Tab
 
 struct ProfileView: View {
     @EnvironmentObject var authViewModel: AuthViewModel
     @State private var selectedTab: ProfileContentTab = .moments
     @Namespace private var tabNamespace
+
+    // Sample to-do items
+    @State private var todos: [TodoItem] = [
+        TodoItem(title: "Reply to Angela about design review",      context: "Overdue by 2 days",    linkedInitials: "AC", isCompleted: false),
+        TodoItem(title: "Call Mom",                                  context: "Weekly check-in",      linkedInitials: "CT", isCompleted: false),
+        TodoItem(title: "Follow up with Rohan on BMA deck",         context: "Sent 3 days ago",      linkedInitials: "RM", isCompleted: false),
+        TodoItem(title: "Send birthday message to Dev",             context: "Birthday is tomorrow",  linkedInitials: "DK", isCompleted: false),
+        TodoItem(title: "Review Kaitlyn's product spec",            context: "Shared yesterday",      linkedInitials: "KR", isCompleted: true),
+    ]
 
     var body: some View {
         NavigationStack {
@@ -153,8 +172,8 @@ struct ProfileView: View {
         switch selectedTab {
         case .moments:
             momentsGrid
-        case .timeline:
-            timelineView
+        case .todos:
+            todosView
         case .about:
             aboutView
         }
@@ -181,93 +200,96 @@ struct ProfileView: View {
         .padding(.top, 2)
     }
 
-    // MARK: - Timeline
+    // MARK: - Todos View
 
-    private var timelineView: some View {
-        VStack(spacing: 0) {
-            ForEach(Array(ProfileTimelineEvent.samples.enumerated()), id: \.element.id) { index, event in
-                timelineRow(event, isLast: index == ProfileTimelineEvent.samples.count - 1)
+    private var todosView: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("Today's Actions")
+                .font(.amberHeadline)
+                .foregroundStyle(Color.amberText)
+                .padding(.horizontal, 16)
+
+            ForEach(Array(todos.enumerated()), id: \.element.id) { index, item in
+                todoRow(item: item, index: index)
             }
+
+            // Add action button
+            Button(action: {}) {
+                HStack(spacing: 10) {
+                    Circle()
+                        .strokeBorder(Color.amberSecondaryText, style: StrokeStyle(lineWidth: 1, dash: [4, 3]))
+                        .frame(width: 22, height: 22)
+
+                    Text("Add")
+                        .font(.amberBody)
+                        .foregroundStyle(Color.amberSecondaryText)
+
+                    Spacer()
+                }
+                .padding(.horizontal, 16)
+                .padding(.vertical, 14)
+                .amberCardStyle()
+                .padding(.horizontal, 16)
+            }
+            .buttonStyle(.plain)
         }
         .padding(.top, 16)
-        .padding(.horizontal, 16)
     }
 
-    private func timelineRow(_ event: ProfileTimelineEvent, isLast: Bool) -> some View {
-        HStack(alignment: .top, spacing: 14) {
-            VStack(spacing: 0) {
-                Text(event.monthAbbrev)
-                    .font(.system(size: 11, weight: .semibold))
-                    .foregroundStyle(Color.amberSecondaryText)
-                    .textCase(.uppercase)
-
-                Text(event.day)
-                    .font(.system(size: 18, weight: .bold))
-                    .foregroundStyle(Color.amberText)
-            }
-            .frame(width: 36)
-
-            VStack(spacing: 0) {
-                Circle()
-                    .fill(Color.amberWarm)
-                    .frame(width: 8, height: 8)
-
-                if !isLast {
-                    Rectangle()
-                        .fill(Color.amberCard)
-                        .frame(width: 1)
+    private func todoRow(item: TodoItem, index: Int) -> some View {
+        HStack(alignment: .top, spacing: 12) {
+            // Checkbox
+            Button {
+                withAnimation(.spring(response: 0.3, dampingFraction: 0.7)) {
+                    todos[index].isCompleted.toggle()
                 }
-            }
+            } label: {
+                ZStack {
+                    Circle()
+                        .strokeBorder(item.isCompleted ? Color.amberWarm : Color.amberSecondaryText, lineWidth: 1.5)
+                        .frame(width: 22, height: 22)
 
-            VStack(alignment: .leading, spacing: 6) {
-                Text(event.title)
-                    .font(.amberHeadline)
-                    .foregroundStyle(Color.amberText)
-
-                Text(event.description)
-                    .font(.amberSubheadline)
-                    .foregroundStyle(Color.amberSecondaryText)
-
-                if !event.people.isEmpty {
-                    HStack(spacing: -8) {
-                        ForEach(Array(event.people.enumerated()), id: \.offset) { idx, person in
-                            Circle()
-                                .fill(Color.amberSurface)
-                                .frame(width: 24, height: 24)
-                                .overlay(
-                                    Text(person)
-                                        .font(.system(size: 9, weight: .bold))
-                                        .foregroundStyle(Color.amberSecondaryText)
-                                )
-                                .overlay(
-                                    Circle()
-                                        .strokeBorder(Color.black, lineWidth: 1.5)
-                                )
-                                .zIndex(Double(event.people.count - idx))
-                        }
+                    if item.isCompleted {
+                        Circle()
+                            .fill(Color.amberWarm)
+                            .frame(width: 14, height: 14)
                     }
-                    .padding(.top, 2)
-                }
-
-                if !event.tags.isEmpty {
-                    HStack(spacing: 6) {
-                        ForEach(event.tags, id: \.self) { tag in
-                            Text(tag)
-                                .font(.system(size: 11, weight: .medium))
-                                .foregroundStyle(Color.amberWarm)
-                                .padding(.horizontal, 8)
-                                .padding(.vertical, 3)
-                                .background(Color.amberWarm.opacity(0.12), in: Capsule())
-                        }
-                    }
-                    .padding(.top, 2)
                 }
             }
-            .padding(14)
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .amberCardStyle()
-            .padding(.bottom, 16)
+            .buttonStyle(.plain)
+            .padding(.top, 2)
+
+            // Title and context
+            VStack(alignment: .leading, spacing: 3) {
+                Text(item.title)
+                    .font(.amberBody)
+                    .foregroundStyle(item.isCompleted ? Color.amberSecondaryText : Color.amberText)
+                    .strikethrough(item.isCompleted, color: Color.amberSecondaryText)
+
+                Text(item.context)
+                    .font(.amberCaption)
+                    .foregroundStyle(Color.amberSecondaryText)
+            }
+
+            Spacer()
+
+            // Linked person avatar
+            if let initials = item.linkedInitials {
+                ZStack {
+                    Circle()
+                        .fill(Color.amberSurface)
+                        .frame(width: 28, height: 28)
+
+                    Text(initials)
+                        .font(.system(size: 10, weight: .bold))
+                        .foregroundStyle(Color.amberSecondaryText)
+                }
+            }
         }
+        .padding(.horizontal, 16)
+        .padding(.vertical, 14)
+        .amberCardStyle()
+        .padding(.horizontal, 16)
     }
 
     // MARK: - About
@@ -380,15 +402,15 @@ struct ProfileView: View {
 // MARK: - Supporting Types
 
 private enum ProfileContentTab: String, CaseIterable, Identifiable {
-    case moments, timeline, about
+    case moments, todos, about
 
     var id: String { rawValue }
 
     var icon: String {
         switch self {
-        case .moments:  return "square.grid.2x2.fill"
-        case .timeline: return "clock.fill"
-        case .about:    return "info.circle.fill"
+        case .moments: return "square.grid.2x2.fill"
+        case .todos:   return "checklist"
+        case .about:   return "info.circle.fill"
         }
     }
 }

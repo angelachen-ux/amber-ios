@@ -2,7 +2,7 @@
 //  CustomTabBar.swift
 //  Amber
 //
-//  Liquid glass 5-tab navigation.
+//  Apple News+ quality liquid glass tab bar with rounded corners.
 //
 
 import SwiftUI
@@ -18,6 +18,7 @@ struct CustomTabBar: View {
                 iconInactive: "person.2",
                 label: "People",
                 isSelected: selectedTab == 0,
+                accentColor: .amberWarm,
                 namespace: animation
             ) {
                 withAnimation(.spring(response: 0.3, dampingFraction: 0.85)) {
@@ -30,6 +31,7 @@ struct CustomTabBar: View {
                 iconInactive: "bubble.left.and.bubble.right",
                 label: "Messages",
                 isSelected: selectedTab == 1,
+                accentColor: .healthSocial,
                 badgeCount: 7,
                 namespace: animation
             ) {
@@ -43,6 +45,8 @@ struct CustomTabBar: View {
                 iconInactive: "hexagon",
                 label: "Amber",
                 isSelected: selectedTab == 2,
+                accentColor: .amberWarm,
+                isCenter: true,
                 namespace: animation
             ) {
                 withAnimation(.spring(response: 0.3, dampingFraction: 0.85)) {
@@ -55,6 +59,7 @@ struct CustomTabBar: View {
                 iconInactive: "square.stack.3d.up",
                 label: "Today",
                 isSelected: selectedTab == 3,
+                accentColor: .healthPhysical,
                 namespace: animation
             ) {
                 withAnimation(.spring(response: 0.3, dampingFraction: 0.85)) {
@@ -67,6 +72,7 @@ struct CustomTabBar: View {
                 iconInactive: "person.circle",
                 label: "Profile",
                 isSelected: selectedTab == 4,
+                accentColor: .healthSpiritual,
                 namespace: animation
             ) {
                 withAnimation(.spring(response: 0.3, dampingFraction: 0.85)) {
@@ -74,17 +80,19 @@ struct CustomTabBar: View {
                 }
             }
         }
-        .padding(.horizontal, 4)
-        .padding(.top, 8)
-        .padding(.bottom, 2)
+        .padding(.horizontal, 8)
+        .padding(.top, 10)
+        .padding(.bottom, 4)
         .background {
-            Rectangle()
-                .fill(.regularMaterial)
-                .overlay(alignment: .top) {
-                    Rectangle()
-                        .fill(Color.glassStroke)
-                        .frame(height: 0.33)
-                }
+            // Apple News+ style: rounded corners, thick glass, floating feel
+            RoundedRectangle(cornerRadius: 24, style: .continuous)
+                .fill(.ultraThinMaterial)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 24, style: .continuous)
+                        .strokeBorder(Color.white.opacity(0.15), lineWidth: 0.5)
+                )
+                .shadow(color: .black.opacity(0.3), radius: 20, y: -4)
+                .padding(.horizontal, 8)
                 .ignoresSafeArea(.all, edges: .bottom)
         }
     }
@@ -95,18 +103,20 @@ struct TabBarItem: View {
     let iconInactive: String
     let label: String
     let isSelected: Bool
+    let accentColor: Color
+    var isCenter: Bool = false
     var badgeCount: Int = 0
     let namespace: Namespace.ID
     let action: () -> Void
 
     var body: some View {
         Button(action: action) {
-            VStack(spacing: 2) {
+            VStack(spacing: 3) {
                 ZStack(alignment: .topTrailing) {
                     Image(systemName: isSelected ? icon : iconInactive)
-                        .font(.system(size: 22))
+                        .font(.system(size: isCenter ? 24 : 22))
                         .foregroundStyle(
-                            isSelected ? Color.amberText : Color.amberSecondaryText
+                            isSelected ? accentColor : Color.amberSecondaryText.opacity(0.6)
                         )
                         .frame(width: 28, height: 28)
 
@@ -121,9 +131,9 @@ struct TabBarItem: View {
                 }
 
                 Text(label)
-                    .font(.system(size: 10, weight: isSelected ? .medium : .regular))
+                    .font(.system(size: 10, weight: isSelected ? .semibold : .regular))
                     .foregroundStyle(
-                        isSelected ? Color.amberText : Color.amberSecondaryText
+                        isSelected ? accentColor : Color.amberSecondaryText.opacity(0.6)
                     )
             }
             .frame(maxWidth: .infinity)

@@ -130,6 +130,10 @@ struct ContactsView: View {
         }
     }
 
+    private var overdueContacts: [AmberContact] {
+        filteredContacts.filter { $0.isOverdue }
+    }
+
     // MARK: - Body
 
     var body: some View {
@@ -145,6 +149,11 @@ struct ContactsView: View {
                             placeholder: "Search contacts"
                         )
                         .padding(.horizontal, 16)
+
+                        // Reconnection Stories Strip
+                        if !overdueContacts.isEmpty {
+                            reconnectionStrip
+                        }
 
                         ForEach(filteredGroups) { group in
                             groupSection(group)
@@ -173,6 +182,58 @@ struct ContactsView: View {
             }
         }
         .preferredColorScheme(.dark)
+    }
+
+    // MARK: - Reconnection Stories Strip
+
+    private var reconnectionStrip: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text("Reconnect")
+                .amberSectionHeader()
+                .padding(.horizontal, 20)
+
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 12) {
+                    ForEach(overdueContacts) { contact in
+                        storyBubble(contact)
+                    }
+                }
+                .padding(.horizontal, 16)
+            }
+        }
+    }
+
+    private func storyBubble(_ contact: AmberContact) -> some View {
+        VStack(spacing: 4) {
+            ZStack {
+                // Gradient ring
+                Circle()
+                    .stroke(
+                        LinearGradient(
+                            colors: [contact.avatarColor, contact.avatarColor.opacity(0.5)],
+                            startPoint: .topLeading,
+                            endPoint: .bottomTrailing
+                        ),
+                        lineWidth: 2
+                    )
+                    .frame(width: 64, height: 64)
+
+                // Inner avatar
+                Circle()
+                    .fill(Color.amberSurface)
+                    .frame(width: 48, height: 48)
+
+                Text(contact.initials)
+                    .font(.system(size: 18, weight: .semibold))
+                    .foregroundStyle(.white)
+            }
+
+            Text(contact.firstName)
+                .font(.amberCaption2)
+                .foregroundStyle(Color.amberText)
+                .lineLimit(1)
+                .frame(maxWidth: 64)
+        }
     }
 
     // MARK: - Group Section
@@ -221,7 +282,16 @@ struct ContactsView: View {
 
     private func contactRow(_ contact: AmberContact) -> some View {
         HStack(spacing: 12) {
-            InitialsAvatar(name: contact.name, size: 44)
+            // Colored initials avatar
+            ZStack {
+                Circle()
+                    .fill(contact.avatarColor)
+                    .frame(width: 44, height: 44)
+
+                Text(contact.initials)
+                    .font(.system(size: 16, weight: .semibold))
+                    .foregroundStyle(.white)
+            }
 
             VStack(alignment: .leading, spacing: 2) {
                 Text(contact.name)
