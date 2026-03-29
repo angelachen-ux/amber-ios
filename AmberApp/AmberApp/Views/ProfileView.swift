@@ -15,52 +15,33 @@ struct ProfileView: View {
     @Namespace private var tabNamespace
 
     var body: some View {
-        ScrollView(.vertical, showsIndicators: false) {
-            VStack(spacing: 0) {
-                headerSection
-                storyHighlights
-                contentTabSelector
-                contentBody
+        NavigationStack {
+            ScrollView(.vertical, showsIndicators: false) {
+                VStack(spacing: 0) {
+                    headerSection
+                    contentTabSelector
+                    contentBody
+                }
+                .padding(.bottom, 120)
             }
-            .padding(.bottom, 120)
+            .background(Color.black.ignoresSafeArea())
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .principal) {
+                    Text("sagartiwari")
+                        .font(.amberHeadline)
+                        .foregroundStyle(Color.amberText)
+                }
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    Button(action: {}) {
+                        Image(systemName: "gearshape")
+                            .font(.system(size: 18, weight: .medium))
+                            .foregroundStyle(Color.amberText)
+                    }
+                }
+            }
         }
-        .background(Color.amberBackground)
         .preferredColorScheme(.dark)
-        .overlay(alignment: .top) {
-            topBar
-        }
-    }
-
-    // MARK: - Top Bar
-
-    private var topBar: some View {
-        HStack {
-            Text("sagartiwari")
-                .font(.amberHeadline)
-                .foregroundStyle(Color.amberText)
-
-            Spacer()
-
-            Button(action: {}) {
-                Image(systemName: "line.3.horizontal")
-                    .font(.system(size: 20, weight: .medium))
-                    .foregroundStyle(Color.amberText)
-            }
-
-            Button(action: {}) {
-                Image(systemName: "gearshape")
-                    .font(.system(size: 20, weight: .medium))
-                    .foregroundStyle(Color.amberText)
-            }
-        }
-        .padding(.horizontal, 16)
-        .padding(.top, 8)
-        .padding(.bottom, 10)
-        .background(
-            Color.amberBackground
-                .opacity(0.9)
-                .background(.ultraThinMaterial)
-        )
     }
 
     // MARK: - Header
@@ -70,120 +51,62 @@ struct ProfileView: View {
             // Avatar
             ZStack {
                 Circle()
-                    .strokeBorder(
-                        LinearGradient(
-                            colors: [.amberWarm, .amberGold, .amberHoney, .amberPrimary],
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
-                        ),
-                        lineWidth: 3
+                    .fill(.regularMaterial)
+                    .frame(width: 80, height: 80)
+                    .overlay(
+                        Circle()
+                            .strokeBorder(Color.glassStroke, lineWidth: 1)
                     )
-                    .frame(width: 96, height: 96)
-
-                Circle()
-                    .fill(Color.amberCardElevated)
-                    .frame(width: 90, height: 90)
 
                 Text("ST")
-                    .font(.system(size: 32, weight: .bold, design: .rounded))
-                    .foregroundStyle(Color.amberWarm)
-            }
-
-            // Name + Username + Bio
-            VStack(spacing: 4) {
-                Text("Sagar Tiwari")
                     .font(.amberTitle2)
                     .foregroundStyle(Color.amberText)
-
-                Text("@sagartiwari")
-                    .font(.amberSubheadline)
-                    .foregroundStyle(Color.amberSecondaryText)
-
-                Text("building amber \u{2022} USC '29 \u{2022} chicago")
-                    .font(.amberCallout)
-                    .foregroundStyle(Color.amberSecondaryText)
-                    .padding(.top, 2)
             }
 
-            // Stats Row
+            // Name and bio
+            VStack(spacing: 4) {
+                Text("Sagar Tiwari")
+                    .font(.amberHeadline)
+                    .foregroundStyle(Color.amberText)
+
+                Text("Building the future of relationships")
+                    .font(.amberCaption)
+                    .foregroundStyle(Color.amberSecondaryText)
+            }
+
+            // Stats row
             HStack(spacing: 0) {
-                profileStat(value: "143", label: "connections")
-                profileStat(value: "12", label: "circles")
-                profileStat(value: "47", label: "day streak")
+                profileStat(value: "127", label: "Contacts")
+                profileStat(value: "12", label: "Circles")
+                profileStat(value: "4", label: "Groups")
             }
             .padding(.top, 4)
 
-            // Edit Profile Button
+            // Edit Profile button
             Button(action: {}) {
                 Text("Edit Profile")
-                    .font(.amberHeadline)
+                    .font(.amberBody)
                     .foregroundStyle(Color.amberText)
                     .frame(maxWidth: .infinity)
-                    .frame(height: 40)
-                    .background(Color.amberCard, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 14, style: .continuous)
-                            .strokeBorder(Color.white.opacity(0.06), lineWidth: 0.5)
-                    )
+                    .frame(height: 36)
+                    .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 12, style: .continuous))
             }
             .padding(.horizontal, 16)
             .padding(.top, 4)
         }
-        .padding(.top, 64)
+        .padding(.top, 16)
     }
 
     private func profileStat(value: String, label: String) -> some View {
         VStack(spacing: 2) {
             Text(value)
-                .font(.system(size: 18, weight: .bold))
+                .font(.amberTitle3)
                 .foregroundStyle(Color.amberText)
             Text(label)
                 .font(.amberCaption)
                 .foregroundStyle(Color.amberSecondaryText)
         }
         .frame(maxWidth: .infinity)
-    }
-
-    // MARK: - Story Highlights
-
-    private var storyHighlights: some View {
-        ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: 16) {
-                ForEach(ProfileHighlight.samples) { highlight in
-                    Button(action: {}) {
-                        VStack(spacing: 6) {
-                            ZStack {
-                                Circle()
-                                    .strokeBorder(
-                                        LinearGradient(
-                                            colors: [highlight.color, highlight.color.opacity(0.5)],
-                                            startPoint: .topLeading,
-                                            endPoint: .bottomTrailing
-                                        ),
-                                        lineWidth: 2
-                                    )
-                                    .frame(width: 68, height: 68)
-
-                                Circle()
-                                    .fill(Color.amberCard)
-                                    .frame(width: 62, height: 62)
-
-                                Image(systemName: highlight.icon)
-                                    .font(.system(size: 22, weight: .medium))
-                                    .foregroundStyle(highlight.color)
-                            }
-
-                            Text(highlight.label)
-                                .font(.amberCaption2)
-                                .foregroundStyle(Color.amberSecondaryText)
-                        }
-                    }
-                    .buttonStyle(.plain)
-                }
-            }
-            .padding(.horizontal, 16)
-        }
-        .padding(.top, 20)
     }
 
     // MARK: - Content Tab Selector
@@ -199,19 +122,19 @@ struct ProfileView: View {
                     VStack(spacing: 10) {
                         Image(systemName: tab.icon)
                             .font(.system(size: 20, weight: .medium))
-                            .foregroundStyle(selectedTab == tab ? Color.amberText : Color.amberTertiaryText)
+                            .foregroundStyle(selectedTab == tab ? Color.amberText : Color.amberSecondaryText)
                             .frame(maxWidth: .infinity)
                             .frame(height: 32)
 
                         ZStack(alignment: .bottom) {
                             Rectangle()
                                 .fill(Color.clear)
-                                .frame(height: 1)
+                                .frame(height: 2)
 
                             if selectedTab == tab {
                                 Rectangle()
-                                    .fill(Color.amberWarm)
-                                    .frame(height: 1.5)
+                                    .fill(Color.amberText)
+                                    .frame(height: 2)
                                     .matchedGeometryEffect(id: "tab_indicator", in: tabNamespace)
                             }
                         }
@@ -221,11 +144,6 @@ struct ProfileView: View {
             }
         }
         .padding(.top, 20)
-        .overlay(alignment: .bottom) {
-            Rectangle()
-                .fill(Color.white.opacity(0.04))
-                .frame(height: 0.5)
-        }
     }
 
     // MARK: - Content Body
@@ -248,36 +166,19 @@ struct ProfileView: View {
         let columns = Array(repeating: GridItem(.flexible(), spacing: 2), count: 3)
 
         return LazyVGrid(columns: columns, spacing: 2) {
-            ForEach(ProfileMoment.samples) { moment in
-                momentCell(moment)
+            ForEach(0..<9, id: \.self) { index in
+                let icons = ["camera.fill", "heart.fill", "star.fill", "leaf.fill", "sun.max.fill",
+                             "moon.fill", "figure.run", "music.note", "book.fill"]
+                Color.amberSurface
+                    .aspectRatio(1, contentMode: .fit)
+                    .overlay(
+                        Image(systemName: icons[index % icons.count])
+                            .font(.system(size: 24, weight: .medium))
+                            .foregroundStyle(Color.amberTertiaryText)
+                    )
             }
         }
         .padding(.top, 2)
-    }
-
-    private func momentCell(_ moment: ProfileMoment) -> some View {
-        ZStack(alignment: .bottomLeading) {
-            LinearGradient(
-                colors: [moment.color, moment.color.opacity(0.4)],
-                startPoint: .topLeading,
-                endPoint: .bottomTrailing
-            )
-
-            // Darken bottom for text legibility
-            LinearGradient(
-                colors: [Color.clear, Color.black.opacity(0.6)],
-                startPoint: .center,
-                endPoint: .bottom
-            )
-
-            Text(moment.title)
-                .font(.system(size: 11, weight: .semibold))
-                .foregroundStyle(.white)
-                .lineLimit(2)
-                .padding(8)
-        }
-        .frame(height: 120)
-        .clipped()
     }
 
     // MARK: - Timeline
@@ -294,7 +195,6 @@ struct ProfileView: View {
 
     private func timelineRow(_ event: ProfileTimelineEvent, isLast: Bool) -> some View {
         HStack(alignment: .top, spacing: 14) {
-            // Date column
             VStack(spacing: 0) {
                 Text(event.monthAbbrev)
                     .font(.system(size: 11, weight: .semibold))
@@ -307,7 +207,6 @@ struct ProfileView: View {
             }
             .frame(width: 36)
 
-            // Timeline line
             VStack(spacing: 0) {
                 Circle()
                     .fill(Color.amberWarm)
@@ -320,7 +219,6 @@ struct ProfileView: View {
                 }
             }
 
-            // Content card
             VStack(alignment: .leading, spacing: 6) {
                 Text(event.title)
                     .font(.amberHeadline)
@@ -334,7 +232,7 @@ struct ProfileView: View {
                     HStack(spacing: -8) {
                         ForEach(Array(event.people.enumerated()), id: \.offset) { idx, person in
                             Circle()
-                                .fill(Color.amberCardElevated)
+                                .fill(Color.amberSurface)
                                 .frame(width: 24, height: 24)
                                 .overlay(
                                     Text(person)
@@ -343,7 +241,7 @@ struct ProfileView: View {
                                 )
                                 .overlay(
                                     Circle()
-                                        .strokeBorder(Color.amberBackground, lineWidth: 1.5)
+                                        .strokeBorder(Color.black, lineWidth: 1.5)
                                 )
                                 .zIndex(Double(event.people.count - idx))
                         }
@@ -376,7 +274,6 @@ struct ProfileView: View {
 
     private var aboutView: some View {
         VStack(spacing: 24) {
-            // Personal Section
             VStack(alignment: .leading, spacing: 0) {
                 Text("Personal")
                     .amberSectionHeader()
@@ -396,7 +293,6 @@ struct ProfileView: View {
                 .padding(.horizontal, 16)
             }
 
-            // Connected Apps Section
             VStack(alignment: .leading, spacing: 0) {
                 Text("Connected Apps")
                     .amberSectionHeader()
@@ -416,7 +312,6 @@ struct ProfileView: View {
                 .padding(.horizontal, 16)
             }
 
-            // Sign Out
             Button {
                 authViewModel.logout()
             } label: {
@@ -496,40 +391,6 @@ private enum ProfileContentTab: String, CaseIterable, Identifiable {
         case .about:    return "info.circle.fill"
         }
     }
-}
-
-private struct ProfileHighlight: Identifiable {
-    let id = UUID()
-    let label: String
-    let icon: String
-    let color: Color
-
-    static let samples: [ProfileHighlight] = [
-        .init(label: "Health",  icon: "heart.fill",             color: .healthPhysical),
-        .init(label: "Sleep",   icon: "moon.fill",              color: .healthSpiritual),
-        .init(label: "Social",  icon: "person.2.fill",          color: .healthSocial),
-        .init(label: "Mind",    icon: "brain.head.profile",     color: .healthIntellectual),
-        .init(label: "Move",    icon: "figure.run",             color: .healthPhysical),
-        .init(label: "Cycle",   icon: "circle.dotted",          color: .healthEmotional),
-    ]
-}
-
-private struct ProfileMoment: Identifiable {
-    let id = UUID()
-    let title: String
-    let color: Color
-
-    static let samples: [ProfileMoment] = [
-        .init(title: "Trip to Japan",         color: .amberWarm),
-        .init(title: "USC Move-In Day",       color: .healthSocial),
-        .init(title: "Coffee with Angela",    color: .amberGold),
-        .init(title: "MAYA Biotech Launch",   color: .healthIntellectual),
-        .init(title: "Family Dinner",         color: .healthEmotional),
-        .init(title: "Lakefront Run",         color: .healthPhysical),
-        .init(title: "First Day at USC",      color: .amberPrimary),
-        .init(title: "Concert at Metro",      color: .healthSpiritual),
-        .init(title: "Friendsgiving",         color: .amberHoney),
-    ]
 }
 
 private struct ProfileTimelineEvent: Identifiable {
