@@ -2,8 +2,7 @@
 //  MessagingView.swift
 //  AmberApp
 //
-//  Premium cinematic messaging view — warm, intimate, zero clutter.
-//  Replaces MessagesView.swift.
+//  Liquid glass messaging view — minimal, dark, zero clutter.
 //
 
 import SwiftUI
@@ -15,7 +14,7 @@ struct ClosestPerson: Identifiable {
     let name: String
     let initials: String
     let isOnline: Bool
-    let isActive: Bool // recently active — shows gradient ring
+    let isActive: Bool
 }
 
 struct CircleConversation: Identifiable {
@@ -33,144 +32,34 @@ struct CircleConversation: Identifiable {
 
 struct MessagingView: View {
     @State private var showCreateCircle = false
-    @State private var otherExpanded = false
-    @State private var appeared = false
 
     var body: some View {
         NavigationStack {
-            ZStack(alignment: .bottomTrailing) {
-                Color.amberBackground.ignoresSafeArea()
-
-                ScrollView(.vertical, showsIndicators: false) {
-                    VStack(spacing: 32) {
-                        closestSection
-                        circlesSection
-                        otherSection
-                    }
-                    .padding(.top, 8)
-                    .padding(.bottom, 180)
+            ScrollView(.vertical, showsIndicators: false) {
+                VStack(spacing: 24) {
+                    circlesSection
+                    otherSection
                 }
-
-                // FAB
-                fabButton
+                .padding(.top, 8)
+                .padding(.bottom, 120)
             }
+            .background(Color.black.ignoresSafeArea())
             .navigationTitle("Messages")
             .navigationBarTitleDisplayMode(.large)
             .toolbarColorScheme(.dark, for: .navigationBar)
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
-                    HStack(spacing: 12) {
-                        Button(action: { showCreateCircle = true }) {
-                            Image(systemName: "square.and.pencil")
-                                .font(.system(size: 16, weight: .semibold))
-                                .foregroundColor(.amberWarm)
-                        }
-                        ProfileAvatarButton()
+                    Button { showCreateCircle = true } label: {
+                        Image(systemName: "square.and.pencil")
+                            .font(.system(size: 16, weight: .semibold))
+                            .foregroundColor(.amberText)
                     }
                 }
             }
             .sheet(isPresented: $showCreateCircle) {
                 createCirclePlaceholder
             }
-            .onAppear {
-                withAnimation(.spring(response: 0.6, dampingFraction: 0.8)) {
-                    appeared = true
-                }
-            }
         }
-    }
-
-    // MARK: - Closest Section
-
-    private var closestSection: some View {
-        VStack(alignment: .leading, spacing: 14) {
-            Text("Closest")
-                .amberSectionHeader()
-                .padding(.horizontal, 20)
-
-            ScrollView(.horizontal, showsIndicators: false) {
-                HStack(spacing: 20) {
-                    ForEach(Array(closestPeople.enumerated()), id: \.element.id) { index, person in
-                        closestAvatar(person)
-                            .opacity(appeared ? 1 : 0)
-                            .offset(y: appeared ? 0 : 12)
-                            .animation(
-                                .spring(response: 0.35, dampingFraction: 0.75)
-                                    .delay(Double(index) * 0.05),
-                                value: appeared
-                            )
-                    }
-                }
-                .padding(.horizontal, 20)
-                .padding(.vertical, 4)
-            }
-        }
-    }
-
-    private func closestAvatar(_ person: ClosestPerson) -> some View {
-        VStack(spacing: 8) {
-            ZStack(alignment: .bottomTrailing) {
-                // Subtle glow behind active avatars
-                if person.isActive {
-                    Circle()
-                        .fill(
-                            RadialGradient(
-                                colors: [Color.amberWarm.opacity(0.25), Color.amberWarm.opacity(0)],
-                                center: .center,
-                                startRadius: 0,
-                                endRadius: 40
-                            )
-                        )
-                        .frame(width: 72, height: 72)
-                }
-
-                // Avatar circle
-                ZStack {
-                    Circle()
-                        .fill(Color.amberCard)
-                        .frame(width: 56, height: 56)
-
-                    Text(person.initials)
-                        .font(.system(size: 18, weight: .semibold))
-                        .foregroundColor(.amberText)
-                }
-                .overlay(
-                    Circle()
-                        .strokeBorder(
-                            person.isActive
-                                ? LinearGradient(
-                                    colors: [.amberWarm, .amberGold],
-                                    startPoint: .topLeading,
-                                    endPoint: .bottomTrailing
-                                )
-                                : LinearGradient(
-                                    colors: [Color.white.opacity(0.08), Color.white.opacity(0.04)],
-                                    startPoint: .topLeading,
-                                    endPoint: .bottomTrailing
-                                ),
-                            lineWidth: person.isActive ? 2.5 : 1
-                        )
-                )
-
-                // Online indicator
-                if person.isOnline {
-                    Circle()
-                        .fill(Color.amberSuccess)
-                        .frame(width: 14, height: 14)
-                        .overlay(
-                            Circle()
-                                .strokeBorder(Color.amberBackground, lineWidth: 2.5)
-                        )
-                        .offset(x: 2, y: 2)
-                }
-            }
-
-            Text(person.name.components(separatedBy: " ").first ?? person.name)
-                .font(.amberCaption)
-                .foregroundColor(.amberSecondaryText)
-                .lineLimit(1)
-        }
-        .frame(width: 64)
     }
 
     // MARK: - Circles Section
@@ -179,59 +68,74 @@ struct MessagingView: View {
         VStack(alignment: .leading, spacing: 12) {
             Text("Circles")
                 .amberSectionHeader()
-                .padding(.horizontal, 20)
+                .padding(.horizontal, 16)
 
             VStack(spacing: 0) {
                 ForEach(Array(circleConversations.enumerated()), id: \.element.id) { index, circle in
-                    circleRow(circle)
-                        .opacity(appeared ? 1 : 0)
-                        .offset(y: appeared ? 0 : 8)
-                        .animation(
-                            .spring(response: 0.35, dampingFraction: 0.75)
-                                .delay(0.15 + Double(index) * 0.04),
-                            value: appeared
-                        )
+                    conversationRow(circle)
 
                     if index < circleConversations.count - 1 {
                         Divider()
-                            .background(Color.white.opacity(0.04))
-                            .padding(.leading, 80)
+                            .background(Color.glassStroke)
+                            .padding(.leading, 72)
                     }
                 }
             }
-            .padding(.vertical, 4)
-            .amberCardStyle()
+            .liquidGlassCard()
             .padding(.horizontal, 16)
         }
     }
 
-    private func circleRow(_ circle: CircleConversation) -> some View {
-        HStack(spacing: 14) {
-            // Circle icon
-            RoundedRectangle(cornerRadius: 14, style: .continuous)
-                .fill(circle.type.color.opacity(0.12))
-                .frame(width: 48, height: 48)
+    // MARK: - Other Section
+
+    private var otherSection: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Text("Other")
+                .amberSectionHeader()
+                .padding(.horizontal, 16)
+
+            VStack(spacing: 0) {
+                ForEach(Array(otherConversations.enumerated()), id: \.element.id) { index, circle in
+                    conversationRow(circle)
+
+                    if index < otherConversations.count - 1 {
+                        Divider()
+                            .background(Color.glassStroke)
+                            .padding(.leading, 72)
+                    }
+                }
+            }
+            .liquidGlassCard()
+            .padding(.horizontal, 16)
+        }
+    }
+
+    // MARK: - Conversation Row
+
+    private func conversationRow(_ circle: CircleConversation) -> some View {
+        HStack(spacing: 12) {
+            // Icon container
+            Circle()
+                .fill(.regularMaterial)
+                .frame(width: 44, height: 44)
                 .overlay(
                     Image(systemName: circle.icon)
-                        .font(.system(size: 20, weight: .medium))
-                        .foregroundColor(circle.type.color)
+                        .font(.system(size: 18, weight: .medium))
+                        .foregroundColor(.amberSecondaryText)
                 )
 
             // Content
-            VStack(alignment: .leading, spacing: 4) {
-                HStack(spacing: 6) {
+            VStack(alignment: .leading, spacing: 3) {
+                HStack(spacing: 5) {
                     Text(circle.name)
-                        .font(.amberSubheadline)
-                        .fontWeight(circle.unreadCount > 0 ? .semibold : .regular)
+                        .font(.amberBody)
                         .foregroundColor(.amberText)
 
                     if circle.hasAmberAgent {
                         Image(systemName: "hexagon.fill")
                             .font(.system(size: 8))
-                            .foregroundColor(.amberGold)
+                            .foregroundColor(.amberWarm)
                     }
-
-                    typeBadge(circle.type)
 
                     Spacer()
 
@@ -242,7 +146,7 @@ struct MessagingView: View {
 
                 HStack {
                     Text(circle.lastMessage)
-                        .font(.amberFootnote)
+                        .font(.amberCaption)
                         .foregroundColor(.amberSecondaryText)
                         .lineLimit(1)
 
@@ -253,104 +157,21 @@ struct MessagingView: View {
                             .font(.system(size: 11, weight: .bold))
                             .foregroundColor(.white)
                             .frame(minWidth: 20, minHeight: 20)
-                            .background(circle.type.color, in: Circle())
+                            .background(Color.amberBlue, in: Circle())
                     }
                 }
             }
         }
-        .padding(.horizontal, 16)
-        .padding(.vertical, 12)
+        .padding(.horizontal, 14)
+        .padding(.vertical, 10)
         .contentShape(Rectangle())
-    }
-
-    private func typeBadge(_ type: CircleType) -> some View {
-        Text(type.label)
-            .font(.system(size: 9, weight: .bold))
-            .foregroundColor(type.color)
-            .padding(.horizontal, 6)
-            .padding(.vertical, 2)
-            .background(type.color.opacity(0.12), in: Capsule())
-    }
-
-    // MARK: - Other Section
-
-    private var otherSection: some View {
-        VStack(alignment: .leading, spacing: 12) {
-            Button {
-                withAnimation(.spring(response: 0.35, dampingFraction: 0.75)) {
-                    otherExpanded.toggle()
-                }
-            } label: {
-                HStack(spacing: 6) {
-                    Text("Other")
-                        .amberSectionHeader()
-
-                    Image(systemName: "chevron.right")
-                        .font(.system(size: 10, weight: .semibold))
-                        .foregroundColor(.amberSecondaryText)
-                        .rotationEffect(.degrees(otherExpanded ? 90 : 0))
-
-                    Spacer()
-                }
-                .padding(.horizontal, 20)
-            }
-
-            if otherExpanded {
-                VStack(spacing: 0) {
-                    ForEach(Array(otherConversations.enumerated()), id: \.element.id) { index, circle in
-                        circleRow(circle)
-                            .opacity(0.65)
-
-                        if index < otherConversations.count - 1 {
-                            Divider()
-                                .background(Color.white.opacity(0.04))
-                                .padding(.leading, 80)
-                        }
-                    }
-                }
-                .padding(.vertical, 4)
-                .amberCardStyle()
-                .padding(.horizontal, 16)
-                .transition(.opacity.combined(with: .move(edge: .top)))
-            }
-        }
-    }
-
-    // MARK: - FAB
-
-    private var fabButton: some View {
-        Button {
-            showCreateCircle = true
-        } label: {
-            Image(systemName: "plus")
-                .font(.system(size: 22, weight: .semibold))
-                .foregroundColor(.white)
-                .frame(width: 56, height: 56)
-                .background(
-                    LinearGradient(
-                        colors: [.amberWarm, .amberGold],
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
-                    ),
-                    in: Circle()
-                )
-                .shadow(color: .amberWarm.opacity(0.3), radius: 16, x: 0, y: 8)
-        }
-        .padding(.trailing, 20)
-        .padding(.bottom, 140)
-        .opacity(appeared ? 1 : 0)
-        .scaleEffect(appeared ? 1 : 0.6)
-        .animation(
-            .spring(response: 0.35, dampingFraction: 0.75).delay(0.4),
-            value: appeared
-        )
     }
 
     // MARK: - Create Circle Sheet
 
     private var createCirclePlaceholder: some View {
         ZStack {
-            Color.amberBackground.ignoresSafeArea()
+            Color.black.ignoresSafeArea()
 
             VStack(spacing: 20) {
                 RoundedRectangle(cornerRadius: 3, style: .continuous)
@@ -363,13 +184,7 @@ struct MessagingView: View {
                 VStack(spacing: 12) {
                     Image(systemName: "circle.hexagongrid.fill")
                         .font(.system(size: 48))
-                        .foregroundStyle(
-                            LinearGradient(
-                                colors: [.amberWarm, .amberGold],
-                                startPoint: .topLeading,
-                                endPoint: .bottomTrailing
-                            )
-                        )
+                        .foregroundColor(.amberWarm)
 
                     Text("Create a Circle")
                         .font(.amberTitle2)
