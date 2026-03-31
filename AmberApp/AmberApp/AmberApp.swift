@@ -83,8 +83,6 @@ struct ContentView: View {
                     AmberAIView()
                 case 3:
                     DailySnapshotView()
-                case 4:
-                    ProfileView()
                 default:
                     AmberAIView()
                 }
