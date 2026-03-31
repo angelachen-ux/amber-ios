@@ -67,18 +67,6 @@ struct CustomTabBar: View {
                 }
             }
 
-            // Profile
-            TabBarItem(
-                icon: "person.circle.fill",
-                iconInactive: "person.circle",
-                label: "Profile",
-                isSelected: selectedTab == 4,
-                namespace: animation
-            ) {
-                withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
-                    selectedTab = 4
-                }
-            }
         }
         .padding(.horizontal, 4)
         .padding(.top, 8)
