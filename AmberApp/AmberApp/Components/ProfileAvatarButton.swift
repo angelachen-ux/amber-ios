@@ -1,27 +1,40 @@
 //
 //  ProfileAvatarButton.swift
-//  Amber
+//  AmberApp
 //
-//  Minimal toolbar avatar.
+//  Reusable 32pt toolbar avatar that opens AmberIDView as a draggable full-height sheet.
 //
 
 import SwiftUI
 
 struct ProfileAvatarButton: View {
-    var body: some View {
-        ZStack {
-            Circle()
-                .fill(Color.amberSurface)
-                .frame(width: 30, height: 30)
-                .overlay(
-                    Circle()
-                        .strokeBorder(Color.glassStroke, lineWidth: 0.5)
-                )
+    @EnvironmentObject var authViewModel: AuthViewModel
+    @State private var showProfile = false
 
-            Text("S")
-                .font(.amberCaption)
-                .fontWeight(.semibold)
-                .foregroundColor(.amberText)
+    var body: some View {
+        Button {
+            showProfile = true
+        } label: {
+            ZStack {
+                Circle()
+                    .fill(Color.amberSurface)
+                    .frame(width: 32, height: 32)
+                    .overlay(
+                        Circle()
+                            .strokeBorder(Color.amberBlue, lineWidth: 1.5)
+                    )
+
+                Text("S")
+                    .font(.system(size: 13, weight: .semibold))
+                    .foregroundColor(.amberText)
+            }
+        }
+        .buttonStyle(.plain)
+        .sheet(isPresented: $showProfile) {
+            AmberIDView()
+                .environmentObject(authViewModel)
+                .presentationDetents([.large])
+                .presentationDragIndicator(.visible)
         }
     }
 }

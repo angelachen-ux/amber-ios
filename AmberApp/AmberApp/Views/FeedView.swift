@@ -116,17 +116,20 @@ struct FeedView: View {
             }
             .navigationTitle("Feed")
             .toolbar {
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button(action: {}) {
-                        Image(systemName: "bell.fill")
-                            .font(.system(size: 18, weight: .semibold))
-                            .foregroundColor(.amberBlue)
-                            .overlay(alignment: .topTrailing) {
-                                Circle()
-                                    .fill(.red)
-                                    .frame(width: 8, height: 8)
-                                    .offset(x: 2, y: -2)
-                            }
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    HStack(spacing: 14) {
+                        Button(action: {}) {
+                            Image(systemName: "bell.fill")
+                                .font(.system(size: 18, weight: .semibold))
+                                .foregroundColor(.amberBlue)
+                                .overlay(alignment: .topTrailing) {
+                                    Circle()
+                                        .fill(.red)
+                                        .frame(width: 8, height: 8)
+                                        .offset(x: 2, y: -2)
+                                }
+                        }
+                        ProfileAvatarButton()
                     }
                 }
             }

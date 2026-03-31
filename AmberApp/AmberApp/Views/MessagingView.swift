@@ -48,11 +48,14 @@ struct MessagingView: View {
             .navigationBarTitleDisplayMode(.large)
             .toolbarColorScheme(.dark, for: .navigationBar)
             .toolbar {
-                ToolbarItem(placement: .topBarTrailing) {
-                    Button { showCreateCircle = true } label: {
-                        Image(systemName: "square.and.pencil")
-                            .font(.system(size: 16, weight: .semibold))
-                            .foregroundColor(.amberText)
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    HStack(spacing: 14) {
+                        Button { showCreateCircle = true } label: {
+                            Image(systemName: "square.and.pencil")
+                                .font(.system(size: 16, weight: .semibold))
+                                .foregroundColor(.amberText)
+                        }
+                        ProfileAvatarButton()
                     }
                 }
             }

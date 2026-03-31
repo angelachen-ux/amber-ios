@@ -100,6 +100,9 @@ struct AmberAIView: View {
                         .font(.amberHeadline)
                         .foregroundStyle(Color.amberText)
                 }
+                ToolbarItem(placement: .navigationBarTrailing) {
+                    ProfileAvatarButton()
+                }
             }
             .onAppear {
                 withAnimation(.easeOut(duration: 0.5)) {

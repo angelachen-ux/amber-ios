@@ -63,7 +63,7 @@ struct SplashView: View {
     }
 }
 
-// MARK: - Content View (5-tab layout)
+// MARK: - Content View (4-tab layout — Profile accessed via avatar sheet)
 
 struct ContentView: View {
     @EnvironmentObject var authViewModel: AuthViewModel
@@ -83,8 +83,6 @@ struct ContentView: View {
                     AmberAIView()
                 case 3:
                     DailySnapshotView()
-                case 4:
-                    ProfileView()
                 default:
                     AmberAIView()
                 }
